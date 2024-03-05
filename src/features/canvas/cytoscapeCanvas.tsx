@@ -2,19 +2,22 @@ import './cytoscapeCanvas.css';
 import CytoscapeComponent from 'react-cytoscapejs';
 import {useCytoscape} from './cytoscapeInit.hook';
 import {cyCanvas} from './cytoscapeCanvas.hook';
-import {useEffect, useState} from 'react';
-import {Core} from 'cytoscape';
+import {useEffect, useRef, useState} from 'react';
+import {Core, ElementDefinition, EventObject } from 'cytoscape';
 import {Position, Size} from '../../types/types';
 
 interface CytoscapeCanvasProps {
   imageSrc: string | null;
+  maxDots: number;
+  isPolygonNeeded?: boolean;
 }
 
-export function CytoscapeCanvas({ imageSrc }: CytoscapeCanvasProps) {
+export function CytoscapeCanvas({ imageSrc, maxDots, isPolygonNeeded }: CytoscapeCanvasProps) {
   const {
     graphData,
     layout,
-    styleSheet
+    styleSheet,
+    setGraphData
   } = useCytoscape();
 
   const [imageWidth, setImageWidth] = useState(0);
@@ -22,10 +25,12 @@ export function CytoscapeCanvas({ imageSrc }: CytoscapeCanvasProps) {
   const [imageRenderedWidth, setImageRenderedWidth] = useState(0);
   const [imageRenderedHeight, setImageRenderedHeight] = useState(0);
 
+  const cyRef = useRef<Core | null>(null);
   let cy: Core | null = null;
 
   const setupCyLogic = (cyEvent: Core) => {
     cy = cyEvent;
+    cyRef.current = cyEvent;
 
     addEventListeners();
   }
@@ -69,7 +74,6 @@ export function CytoscapeCanvas({ imageSrc }: CytoscapeCanvasProps) {
   }
 
   const resizeCanvas = (): void => {
-    console.log('here');
     if (!cy) { return; }
 
     const currentZoom = cy.zoom();
@@ -85,7 +89,7 @@ export function CytoscapeCanvas({ imageSrc }: CytoscapeCanvasProps) {
 
     const background = await loadImage(imageSrc)
 
-    cy.on("render cyCanvas.resize", () => {
+    cyRef.current?.on("render cyCanvas.resize", () => {
       bottomLayer.resetTransform(ctx);
       bottomLayer.clear(ctx);
       bottomLayer.setTransform(ctx);
@@ -95,6 +99,7 @@ export function CytoscapeCanvas({ imageSrc }: CytoscapeCanvasProps) {
 
     setImageWidth(background.width)
     setImageHeight(background.height);
+    cyRef.current?.on('click', handleClick)
   }
 
   const loadImage = async (imageSrc: string): Promise<HTMLImageElement> => {
@@ -123,6 +128,51 @@ export function CytoscapeCanvas({ imageSrc }: CytoscapeCanvasProps) {
     resizeCanvas();
   }, [imageWidth, imageHeight]);
 
+  const handleClick = (event: EventObject) => {
+    if (!cyRef.current) { return; }
+
+    const position = event.position;
+
+    setGraphData(prevState => {
+      if (prevState.nodes.length === maxDots) {  return prevState; }
+
+      const newNode: ElementDefinition = {
+        data: {
+          id: `dot${prevState.nodes.length}`,
+          label: `${prevState.nodes.length}`,
+        },
+        position: {x: Number(position.x), y: Number(position.y)}
+      }
+
+      if (prevState.nodes.length + 1 === maxDots && isPolygonNeeded) {
+        const edges = prevState.nodes.map((_, index) => {
+          return {
+            data: {
+              source: `dot${index}`,
+              target: `dot${index + 1}`
+            }
+          }
+        })
+
+        edges.push({
+          data: {
+            source: `dot${prevState.nodes.length}`,
+            target: `dot${0}`
+          }
+        })
+
+        return {
+          nodes: [...prevState.nodes, newNode],
+          edges
+        }
+      }
+
+      return {
+        nodes: [...prevState.nodes, newNode],
+        edges: prevState.edges
+      }
+    })
+  }
   return (
     <div>
       <CytoscapeComponent

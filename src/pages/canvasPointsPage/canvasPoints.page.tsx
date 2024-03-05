@@ -1,17 +1,15 @@
 import {CytoscapeCanvas} from '../../features/canvas/cytoscapeCanvas';
-import {useCanvasPoints} from './canvasPoints.hook';
+import {useImage} from '../../shared/hooks/image.hook';
 
 
 export function CanvasPointsPage() {
-  const {
-    imageSrc,
-    setImageToCanvas
-  } = useCanvasPoints();
+  const {imageSrc, setImageToCanvas} = useImage('http://localhost:4000/getImage')
 
   return (
     <div className='canvas-points-page canvas-page'>
       <CytoscapeCanvas
         imageSrc={imageSrc}
+        maxDots={4}
       />
       <aside>
         <button

@@ -1,12 +1,22 @@
 import {useState} from 'react';
+import {ElementDefinition} from "cytoscape";
+
+
+export interface Node {
+  id: string;
+  label: string;
+  position: { x: number; y: number };
+}
+
+interface GraphData {
+  nodes: ElementDefinition[],
+  edges: ElementDefinition[]
+}
 
 export function useCytoscape() {
-  const [graphData, _] = useState({
-    nodes: [
-      // { data: { id: "1", label: "IP 1", type: "ip" } },
-      // { data: { id: "2", label: "Device 1", type: "device" } }
-    ],
-    edges: [ ]
+  const [graphData, setGraphData] = useState<GraphData>({
+    nodes: [],
+    edges: []
   });
 
   const layout = {
@@ -31,6 +41,7 @@ export function useCytoscape() {
   return {
     graphData,
     layout,
-    styleSheet
+    styleSheet,
+    setGraphData
   }
 }
