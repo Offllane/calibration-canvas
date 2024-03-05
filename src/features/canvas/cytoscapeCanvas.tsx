@@ -2,28 +2,26 @@ import './cytoscapeCanvas.css';
 import CytoscapeComponent from 'react-cytoscapejs';
 import {useCytoscape} from './cytoscapeInit.hook';
 import {cyCanvas} from './cytoscapeCanvas.hook';
-import {useEffect, useState} from 'react';
-import {Core } from 'cytoscape';
+import {useEffect, useRef, useState} from 'react';
+import {Core, ElementDefinition } from 'cytoscape';
 
 interface CytoscapeCanvasProps {
   imageSrc: string | null;
+  maxDots: number;
 }
 
-export function CytoscapeCanvas({ imageSrc }: CytoscapeCanvasProps) {
+export function CytoscapeCanvas({ imageSrc, maxDots }: CytoscapeCanvasProps) {
   const {
     graphData,
     layout,
-    styleSheet
+    styleSheet,
+    setGraphData
   } = useCytoscape();
 
   const [width, setWidth] = useState(400);
   const [height, setHeight] = useState(400);
 
-  let cy: Core | null = null;
-
-  const setupCyLogic = (cyEvent: Core) => {
-    cy = cyEvent;
-  }
+  const cyRef = useRef<Core | null>(null);
 
   const drawImage = async (cy: Core, imageSrc: string) => {
     const bottomLayer = cyCanvas(cy);
@@ -32,7 +30,7 @@ export function CytoscapeCanvas({ imageSrc }: CytoscapeCanvasProps) {
 
     const background = await loadImage(imageSrc)
 
-    cy.on("render cyCanvas.resize", () => {
+    cyRef.current?.on("render cyCanvas.resize", () => {
       bottomLayer.resetTransform(ctx);
       bottomLayer.clear(ctx);
       bottomLayer.setTransform(ctx);
@@ -42,7 +40,7 @@ export function CytoscapeCanvas({ imageSrc }: CytoscapeCanvasProps) {
 
     setWidth(background.width)
     setHeight(background.height);
-    console.log(background.width);
+    cyRef.current?.on('click', handleClick)
   }
 
   const loadImage = async (imageSrc: string): Promise<HTMLImageElement> => {
@@ -51,7 +49,6 @@ export function CytoscapeCanvas({ imageSrc }: CytoscapeCanvasProps) {
       background.src = imageSrc;
       background.onload = () => {
         res(background)
-        console.log('here')
       }
 
       background.onerror = (error) => {
@@ -62,13 +59,38 @@ export function CytoscapeCanvas({ imageSrc }: CytoscapeCanvasProps) {
 
 
   useEffect(() => {
-    if (!imageSrc || !cy) {
+    if (!imageSrc || !cyRef.current) {
       return;
     }
 
-    drawImage(cy, imageSrc);
+    drawImage(cyRef.current, imageSrc);
   }, [imageSrc]);
 
+  const handleClick = (event: any) => {
+    if (!cyRef.current) {
+      return
+    }
+
+    const position = event.position;
+
+    setGraphData(prevState => {
+      if (prevState.nodes.length === maxDots) {
+        return prevState
+      }
+      const newNode: ElementDefinition = {
+        data: {
+          id: `dot${prevState.nodes.length}`,
+          label: `${prevState.nodes.length}`,
+        },
+        position: {x: Number(position.x), y: Number(position.y)}
+      }
+
+      return {
+        nodes: [...prevState.nodes, newNode],
+        edges: prevState.edges
+      }
+    })
+  }
   return (
     <div>
       <CytoscapeComponent
@@ -87,7 +109,9 @@ export function CytoscapeCanvas({ imageSrc }: CytoscapeCanvasProps) {
         layout={layout}
         // @ts-ignore
         stylesheet={styleSheet}
-        cy={cyEvent => setupCyLogic(cyEvent)}
+        cy={cyEvent => {
+          cyRef.current = cyEvent
+        }}
       />
     </div>
   )
