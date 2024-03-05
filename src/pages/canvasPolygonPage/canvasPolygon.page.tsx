@@ -9,6 +9,7 @@ export function CanvasPolygonPage() {
           <CytoscapeCanvas
               imageSrc={imageSrc}
               maxDots={6}
+              isNeedPolygon={true}
           />
           <aside>
               <button

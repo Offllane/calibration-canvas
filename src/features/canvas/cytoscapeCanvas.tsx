@@ -8,9 +8,10 @@ import {Core, ElementDefinition } from 'cytoscape';
 interface CytoscapeCanvasProps {
   imageSrc: string | null;
   maxDots: number;
+  isNeedPolygon?: boolean;
 }
 
-export function CytoscapeCanvas({ imageSrc, maxDots }: CytoscapeCanvasProps) {
+export function CytoscapeCanvas({ imageSrc, maxDots, isNeedPolygon }: CytoscapeCanvasProps) {
   const {
     graphData,
     layout,
@@ -77,12 +78,36 @@ export function CytoscapeCanvas({ imageSrc, maxDots }: CytoscapeCanvasProps) {
       if (prevState.nodes.length === maxDots) {
         return prevState
       }
+
       const newNode: ElementDefinition = {
         data: {
           id: `dot${prevState.nodes.length}`,
           label: `${prevState.nodes.length}`,
         },
         position: {x: Number(position.x), y: Number(position.y)}
+      }
+
+      if (prevState.nodes.length + 1 === maxDots && isNeedPolygon) {
+        const edges = prevState.nodes.map((_, index) => {
+          return {
+            data: {
+              source: `dot${index}`,
+              target: `dot${index + 1}`
+            }
+          }
+        })
+
+        edges.push({
+          data: {
+            source: `dot${prevState.nodes.length}`,
+            target: `dot${0}`
+          }
+        })
+
+        return {
+          nodes: [...prevState.nodes, newNode],
+          edges
+        }
       }
 
       return {
