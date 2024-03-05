@@ -3,7 +3,7 @@ import CytoscapeComponent from 'react-cytoscapejs';
 import {useCytoscape} from './cytoscapeInit.hook';
 import {cyCanvas} from './cytoscapeCanvas.hook';
 import {useEffect, useState} from 'react';
-import {Core, NodeCollection} from 'cytoscape';
+import {Core } from 'cytoscape';
 
 interface CytoscapeCanvasProps {
   imageSrc: string | null;
@@ -25,13 +25,12 @@ export function CytoscapeCanvas({ imageSrc }: CytoscapeCanvasProps) {
     cy = cyEvent;
   }
 
-  const drawImage = (cy: Core, imageSrc: string) => {
+  const drawImage = async (cy: Core, imageSrc: string) => {
     const bottomLayer = cyCanvas(cy);
     const canvas = bottomLayer.getCanvas();
     const ctx = canvas.getContext('2d')!;
 
-    const background = new Image();
-    background.src = imageSrc;
+    const background = await loadImage(imageSrc)
 
     cy.on("render cyCanvas.resize", () => {
       bottomLayer.resetTransform(ctx);
@@ -46,9 +45,26 @@ export function CytoscapeCanvas({ imageSrc }: CytoscapeCanvasProps) {
     console.log(background.width);
   }
 
+  const loadImage = async (imageSrc: string): Promise<HTMLImageElement> => {
+    return new Promise((res, rej) => {
+      const background = new Image();
+      background.src = imageSrc;
+      background.onload = () => {
+        res(background)
+        console.log('here')
+      }
+
+      background.onerror = (error) => {
+        rej(error)
+      }
+    })
+  }
+
+
   useEffect(() => {
-    if (!imageSrc) { return; }
-    if (!cy) { return; }
+    if (!imageSrc || !cy) {
+      return;
+    }
 
     drawImage(cy, imageSrc);
   }, [imageSrc]);
