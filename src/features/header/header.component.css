@@ -1,0 +1,21 @@
+header {
+  width: 100%;
+  padding: 30px;
+  background-color: #e0e0e0;
+}
+
+.menu {
+  display: flex;
+  gap: 20px;
+}
+
+.menu a {
+  color: black;
+  cursor: pointer;
+  transition: .2s;
+}
+
+.menu a:hover,
+.menu a:active {
+  color: blue;
+}
