@@ -24,12 +24,16 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, isPolygonNeeded }: 
   const [imageRenderedWidth, setImageRenderedWidth] = useState(0);
   const [imageRenderedHeight, setImageRenderedHeight] = useState(0);
 
-  const cyRef = useRef<Core | null>(null);
   let cy: Core | null = null;
+  let canvas: HTMLCanvasElement | null = null;
+  let ctx: CanvasRenderingContext2D | null = null;
+  let bottomLayer: {getCanvas(): HTMLCanvasElement, clear(ctx: CanvasRenderingContext2D): void, resetTransform(ctx: CanvasRenderingContext2D): void, setTransform(ctx: CanvasRenderingContext2D): void} | null= null
 
   const setupCyLogic = (cyEvent: Core) => {
     cy = cyEvent;
-    cyRef.current = cyEvent;
+    bottomLayer = cyCanvas(cy);
+    canvas = bottomLayer.getCanvas();
+    ctx = canvas.getContext('2d');
 
     addEventListeners();
   }
@@ -41,22 +45,35 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, isPolygonNeeded }: 
     const canvasSize: Size = { width: cy.container()!.offsetWidth, height: cy.container()!.offsetHeight };
 
     cy.off('mousemove');
-    cy.on('mousemove', () => preventPanOverImageBorders(imageSize, canvasSize));
+    cy.on('mousemove', () => {
+      preventPanOverImageBorders(imageSize, canvasSize)
+      fillPolygonBackgroundByDrag()
+    });
     cy.off('mouseup');
-    cy.on('mouseup', () => preventPanOverImageBorders(imageSize, canvasSize));
+    cy.on('mouseup', () => {
+      preventPanOverImageBorders(imageSize, canvasSize);
+    });
     cy.off('zoom');
     cy.on('zoom', () => {
       // TODO use debounce
       resizeCanvas();
       preventPanOverImageBorders(imageSize, canvasSize);
+      fillPolygonBackgroundByDrag()
     });
     cy.off('click');
     cy.on('click', (event: EventObject) => handleClick(event));
-    cy.off('drag');
+    cy.off('drag')
     cy.on('drag', 'node', event => {
       const availablePosition: Position = setNodeAvailablePosition(event.target.position());
       event.target.position(availablePosition);
+      fillPolygonBackgroundByDrag()
     })
+  }
+
+  const fillPolygonBackgroundByDrag = () => {
+    if (!cy) {return;}
+    if (cy.nodes().length !== maxDotsQuantity) { return; }
+    fillPolygonBackground()
   }
 
   const preventPanOverImageBorders = (currentImageSize: Size, canvasSize: Size): void => {
@@ -89,13 +106,11 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, isPolygonNeeded }: 
   }
 
   const drawImage = async (cy: Core, imageSrc: string) => {
-    const bottomLayer = cyCanvas(cy);
-    const canvas = bottomLayer.getCanvas();
-    const ctx = canvas.getContext('2d')!;
-
     const background = await loadImage(imageSrc)
 
-    cyRef.current?.on("render cyCanvas.resize", () => {
+    cy.on("render cyCanvas.resize", () => {
+      if (!ctx || !bottomLayer) { return; }
+
       bottomLayer.resetTransform(ctx);
       bottomLayer.clear(ctx);
       bottomLayer.setTransform(ctx);
@@ -134,7 +149,7 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, isPolygonNeeded }: 
   }, [imageWidth, imageHeight]);
 
   const handleClick = (event: EventObject) => {
-    if (!cyRef.current || !cy) { return; }
+    if (!cy) { return; }
     if (cy.nodes().length === maxDotsQuantity) { return; }
 
     const clickPosition: Position = setNodeAvailablePosition(event.position);
@@ -143,8 +158,10 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, isPolygonNeeded }: 
       data: {
         id: `dot${cy.nodes().length}`,
         label: `${cy.nodes().length + 1}`,
+
       },
-      position: {x: clickPosition.x, y: clickPosition.y}
+      position: {x: clickPosition.x, y: clickPosition.y},
+      selectable: true
     }
 
     cy.add(newNode);
@@ -153,21 +170,42 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, isPolygonNeeded }: 
   }
 
   const drawPolygon = () => {
-    if (!cyRef.current || !cy) { return; }
+    if (!cy) { return; }
     if (cy.nodes().length !== maxDotsQuantity) { return; }
 
-    const edges = cy.nodes().map((_, index) => {
+    const edges: ElementDefinition[] = cy.nodes().map((_, index) => {
       const targetIndex: number = index + 1 === cy!.nodes().length ? 0 : index + 1;
 
       return {
         data: {
           source: `dot${index}`,
-          target: `dot${targetIndex}`
-        }
+          target: `dot${targetIndex}`,
+        },
+        selectable: true
       }
     });
 
+    fillPolygonBackground()
     cy.add(edges);
+  }
+
+  const fillPolygonBackground = () => {
+    if (!cy || !canvas || !ctx) {
+      return
+    }
+
+    ctx.clearRect(0,0, canvas.width, canvas.height)
+    ctx.fillStyle = '#f00';
+    ctx.beginPath();
+
+    cy.nodes().forEach((node) => {
+      if (!ctx) { return; }
+
+      ctx.lineTo(node.renderedPosition().x, node.renderedPosition().y);
+    })
+
+    ctx.closePath();
+    ctx.fill();
   }
 
   const setNodeAvailablePosition = (position: Position): Position => {

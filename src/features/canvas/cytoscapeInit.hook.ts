@@ -35,7 +35,7 @@ export function useCytoscape() {
         height: 50,
         label: "data(label)",
       }
-    }
+    },
   ];
 
   return {
