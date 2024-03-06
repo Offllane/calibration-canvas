@@ -1,6 +1,6 @@
 import {useState} from 'react';
 import {ElementDefinition} from "cytoscape";
-
+import pointer from '../../images/pointer.svg';
 
 export interface Node {
   id: string;
@@ -30,10 +30,19 @@ export function useCytoscape() {
     {
       selector: "node",
       style: {
-        backgroundColor: "red",
-        width: 50,
-        height: 50,
+        backgroundImage: pointer,
+        backgroundOpacity: '0',
+        shape: 'rectangle',
+        width: 100,
+        height: 100,
         label: "data(label)",
+        fontSize: 20,
+        fontWeight: 600,
+        'text-margin-y': 30,
+        'text-background-color': 'white',
+        'text-background-opacity': 1,
+        'text-background-padding': 3,
+        'border-radius': 5
       }
     }
   ];
