@@ -50,6 +50,8 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, isPolygonNeeded }: 
       resizeCanvas();
       preventPanOverImageBorders(imageSize, canvasSize);
     });
+    cy.off('click');
+    cy.on('click', (event) => handleClick(event));
   }
 
   const preventPanOverImageBorders = (currentImageSize: Size, canvasSize: Size): void => {
@@ -98,7 +100,6 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, isPolygonNeeded }: 
 
     setImageWidth(background.width)
     setImageHeight(background.height);
-    cyRef.current?.on('click', handleClick)
   }
 
   const loadImage = async (imageSrc: string): Promise<HTMLImageElement> => {
@@ -131,13 +132,14 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, isPolygonNeeded }: 
     if (!cyRef.current || !cy) { return; }
     if (cy.nodes().length === maxDotsQuantity) { return; }
 
-    const position: Position = event.position;
+    const clickPosition: Position = setNodeAvailablePosition(event.position);
+
     const newNode: ElementDefinition = {
       data: {
         id: `dot${cy.nodes().length}`,
         label: `${cy.nodes().length + 1}`,
       },
-      position: {x: position.x, y: position.y}
+      position: {x: clickPosition.x, y: clickPosition.y}
     }
 
     cy.add(newNode);
@@ -161,6 +163,22 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, isPolygonNeeded }: 
     });
 
     cy.add(edges);
+  }
+
+  const setNodeAvailablePosition = (position: Position): Position => {
+    const newPosition: Position = {...position};
+    const imageSize: Size = { width: imageWidth, height: imageHeight };
+    const forbiddenSpaceInPercent = 0.05;
+    const leftRightForbiddenAreaSize = ~~(imageSize.width * forbiddenSpaceInPercent);
+    const topBottomForbiddenAreaSize = ~~(imageSize.height * forbiddenSpaceInPercent);
+
+    if (position.x < leftRightForbiddenAreaSize) { newPosition.x = leftRightForbiddenAreaSize + 1; } // left 5% area
+    if (position.x > imageSize.width - leftRightForbiddenAreaSize) { newPosition.x = imageSize.width - leftRightForbiddenAreaSize - 1; } // right 5% area
+    if (position.y < topBottomForbiddenAreaSize) { newPosition.y = topBottomForbiddenAreaSize + 1; } // top 5% area
+    if (position.y > imageSize.height - topBottomForbiddenAreaSize) { newPosition.y = imageSize.height - topBottomForbiddenAreaSize - 1; } // bottom 5% area
+
+
+    return newPosition;
   }
 
   return (
