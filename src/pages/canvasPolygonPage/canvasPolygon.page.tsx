@@ -8,7 +8,7 @@ export function CanvasPolygonPage() {
       <div className='canvas-points-page canvas-page'>
           <CytoscapeCanvas
               imageSrc={imageSrc}
-              maxDots={6}
+              maxDotsQuantity={6}
               isPolygonNeeded={true}
           />
           <aside>

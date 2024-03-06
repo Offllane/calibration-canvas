@@ -8,16 +8,15 @@ import {Position, Size} from '../../types/types';
 
 interface CytoscapeCanvasProps {
   imageSrc: string | null;
-  maxDots: number;
+  maxDotsQuantity: number;
   isPolygonNeeded?: boolean;
 }
 
-export function CytoscapeCanvas({ imageSrc, maxDots, isPolygonNeeded }: CytoscapeCanvasProps) {
+export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, isPolygonNeeded }: CytoscapeCanvasProps) {
   const {
     graphData,
     layout,
-    styleSheet,
-    setGraphData
+    styleSheet
   } = useCytoscape();
 
   const [imageWidth, setImageWidth] = useState(0);
@@ -129,50 +128,41 @@ export function CytoscapeCanvas({ imageSrc, maxDots, isPolygonNeeded }: Cytoscap
   }, [imageWidth, imageHeight]);
 
   const handleClick = (event: EventObject) => {
-    if (!cyRef.current) { return; }
+    if (!cyRef.current || !cy) { return; }
+    if (cy.nodes().length === maxDotsQuantity) { return; }
 
-    const position = event.position;
+    const position: Position = event.position;
+    const newNode: ElementDefinition = {
+      data: {
+        id: `dot${cy.nodes().length}`,
+        label: `${cy.nodes().length + 1}`,
+      },
+      position: {x: position.x, y: position.y}
+    }
 
-    setGraphData(prevState => {
-      if (prevState.nodes.length === maxDots) {  return prevState; }
+    cy.add(newNode);
 
-      const newNode: ElementDefinition = {
-        data: {
-          id: `dot${prevState.nodes.length}`,
-          label: `${prevState.nodes.length}`,
-        },
-        position: {x: Number(position.x), y: Number(position.y)}
-      }
+    if (isPolygonNeeded) { drawPolygon(); }
+  }
 
-      if (prevState.nodes.length + 1 === maxDots && isPolygonNeeded) {
-        const edges = prevState.nodes.map((_, index) => {
-          return {
-            data: {
-              source: `dot${index}`,
-              target: `dot${index + 1}`
-            }
-          }
-        })
+  const drawPolygon = () => {
+    if (!cyRef.current || !cy) { return; }
+    if (cy.nodes().length !== maxDotsQuantity) { return; }
 
-        edges.push({
-          data: {
-            source: `dot${prevState.nodes.length}`,
-            target: `dot${0}`
-          }
-        })
-
-        return {
-          nodes: [...prevState.nodes, newNode],
-          edges
-        }
-      }
+    const edges = cy.nodes().map((_, index) => {
+      const targetIndex: number = index + 1 === cy!.nodes().length ? 0 : index + 1;
 
       return {
-        nodes: [...prevState.nodes, newNode],
-        edges: prevState.edges
+        data: {
+          source: `dot${index}`,
+          target: `dot${targetIndex}`
+        }
       }
-    })
+    });
+
+    cy.add(edges);
   }
+
   return (
     <div>
       <CytoscapeComponent

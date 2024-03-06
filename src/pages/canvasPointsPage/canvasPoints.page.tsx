@@ -9,7 +9,7 @@ export function CanvasPointsPage() {
     <div className='canvas-points-page canvas-page'>
       <CytoscapeCanvas
         imageSrc={imageSrc}
-        maxDots={4}
+        maxDotsQuantity={4}
       />
       <aside>
         <button

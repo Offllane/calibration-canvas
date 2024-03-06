@@ -8,7 +8,7 @@ export interface Node {
   position: { x: number; y: number };
 }
 
-interface GraphData {
+export interface GraphData {
   nodes: ElementDefinition[],
   edges: ElementDefinition[]
 }
@@ -31,8 +31,8 @@ export function useCytoscape() {
       selector: "node",
       style: {
         backgroundColor: "red",
-        width: 30,
-        height: 30,
+        width: 50,
+        height: 50,
         label: "data(label)",
       }
     }
