@@ -38,11 +38,9 @@ export function useCytoscape() {
         label: "data(label)",
         fontSize: 20,
         fontWeight: 600,
-        'text-margin-y': 30,
+        'text-margin-y': 26,
         'text-background-color': 'white',
         'text-background-opacity': 1,
-        'text-background-padding': 3,
-        'border-radius': 5
       }
     },
   ];
