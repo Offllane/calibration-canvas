@@ -44,7 +44,7 @@ export function useCytoscape() {
         'text-background-padding': 3,
         'border-radius': 5
       }
-    }
+    },
   ];
 
   return {
