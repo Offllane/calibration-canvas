@@ -51,7 +51,12 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, isPolygonNeeded }: 
       preventPanOverImageBorders(imageSize, canvasSize);
     });
     cy.off('click');
-    cy.on('click', (event) => handleClick(event));
+    cy.on('click', (event: EventObject) => handleClick(event));
+    cy.off('drag');
+    cy.on('drag', 'node', event => {
+      const availablePosition: Position = setNodeAvailablePosition(event.target.position());
+      event.target.position(availablePosition);
+    })
   }
 
   const preventPanOverImageBorders = (currentImageSize: Size, canvasSize: Size): void => {
