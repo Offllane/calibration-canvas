@@ -47,7 +47,6 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, isPolygonNeeded }: 
     cy.off('mousemove');
     cy.on('mousemove', () => {
       preventPanOverImageBorders(imageSize, canvasSize)
-      fillPolygonBackgroundByDrag()
     });
     cy.off('mouseup');
     cy.on('mouseup', () => {
@@ -55,10 +54,8 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, isPolygonNeeded }: 
     });
     cy.off('zoom');
     cy.on('zoom', () => {
-      // TODO use debounce
       resizeCanvas();
       preventPanOverImageBorders(imageSize, canvasSize);
-      fillPolygonBackgroundByDrag()
     });
     cy.off('click');
     cy.on('click', (event: EventObject) => handleClick(event));
@@ -66,14 +63,7 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, isPolygonNeeded }: 
     cy.on('drag', 'node', event => {
       const availablePosition: Position = setNodeAvailablePosition(event.target.position());
       event.target.position(availablePosition);
-      fillPolygonBackgroundByDrag()
     })
-  }
-
-  const fillPolygonBackgroundByDrag = () => {
-    if (!cy) {return;}
-    if (cy.nodes().length !== maxDotsQuantity) { return; }
-    fillPolygonBackground()
   }
 
   const preventPanOverImageBorders = (currentImageSize: Size, canvasSize: Size): void => {
@@ -111,11 +101,15 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, isPolygonNeeded }: 
     cy.on("render cyCanvas.resize", () => {
       if (!ctx || !bottomLayer) { return; }
 
+      // draw fixed elements
       bottomLayer.resetTransform(ctx);
       bottomLayer.clear(ctx);
       bottomLayer.setTransform(ctx);
       ctx.save();
       ctx.drawImage(background, 0, 0);
+
+      // draw polygon
+      fillPolygonBackground();
     });
 
     setImageWidth(background.width)
@@ -185,24 +179,20 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, isPolygonNeeded }: 
       }
     });
 
-    fillPolygonBackground()
     cy.add(edges);
   }
 
   const fillPolygonBackground = () => {
-    if (!cy || !canvas || !ctx) {
-      return
-    }
+    if (!cy || !canvas || !ctx) { return; }
+    if (!isPolygonNeeded) { return; }
+    if (cy.nodes().length !== maxDotsQuantity) { return; }
 
-    ctx.clearRect(0,0, canvas.width, canvas.height)
     ctx.fillStyle = '#f00';
     ctx.beginPath();
 
     cy.nodes().forEach((node) => {
-      if (!ctx) { return; }
-
-      ctx.lineTo(node.renderedPosition().x, node.renderedPosition().y);
-    })
+      ctx!.lineTo(node.position().x, node.position().y);
+    });
 
     ctx.closePath();
     ctx.fill();
