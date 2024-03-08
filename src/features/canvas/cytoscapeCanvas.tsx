@@ -2,7 +2,7 @@ import './cytoscapeCanvas.css';
 import CytoscapeComponent from 'react-cytoscapejs';
 import {useCytoscape} from './cytoscapeInit.hook';
 import {cyCanvas} from './cytoscapeCanvas.hook';
-import {useEffect, useRef, useState} from 'react';
+import {useEffect, useState} from 'react';
 import {Core, ElementDefinition, EventObject } from 'cytoscape';
 import {Position, Size} from '../../types/types';
 
@@ -187,7 +187,7 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, isPolygonNeeded }: 
     if (!isPolygonNeeded) { return; }
     if (cy.nodes().length !== maxDotsQuantity) { return; }
 
-    ctx.fillStyle = '#f00';
+    ctx.fillStyle = 'rgba(0, 0, 255, 0.3)';
     ctx.beginPath();
 
     cy.nodes().forEach((node) => {

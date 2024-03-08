@@ -43,6 +43,13 @@ export function useCytoscape() {
         'text-background-opacity': 1,
       }
     },
+    {
+      selector: 'edge',
+      style: {
+        width: 1,
+        'line-color': 'blue'
+      }
+    }
   ];
 
   return {
