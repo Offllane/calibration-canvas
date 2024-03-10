@@ -3,16 +3,17 @@ import CytoscapeComponent from 'react-cytoscapejs';
 import {useCytoscape} from './cytoscapeInit.hook';
 import {cyCanvas} from './cytoscapeCanvas.hook';
 import {useEffect, useState} from 'react';
-import {Core, ElementDefinition, EventObject } from 'cytoscape';
-import {Position, Size} from '../../types/types';
+import {Core, ElementDefinition, EventObject, NodeSingular} from 'cytoscape';
+import {NodesPositionInfo, Position, Size} from '../../types/types';
 
 interface CytoscapeCanvasProps {
   imageSrc: string | null;
   maxDotsQuantity: number;
   isPolygonNeeded?: boolean;
+  setNodesPosition?: (data: NodesPositionInfo) => void;
 }
 
-export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, isPolygonNeeded }: CytoscapeCanvasProps) {
+export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, isPolygonNeeded, setNodesPosition }: CytoscapeCanvasProps) {
   const {
     graphData,
     layout,
@@ -27,7 +28,12 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, isPolygonNeeded }: 
   let cy: Core | null = null;
   let canvas: HTMLCanvasElement | null = null;
   let ctx: CanvasRenderingContext2D | null = null;
-  let bottomLayer: {getCanvas(): HTMLCanvasElement, clear(ctx: CanvasRenderingContext2D): void, resetTransform(ctx: CanvasRenderingContext2D): void, setTransform(ctx: CanvasRenderingContext2D): void} | null= null
+  // TODO recheck it, maybe it is not necessary already
+  let bottomLayer: {
+    getCanvas(): HTMLCanvasElement,
+    clear(ctx: CanvasRenderingContext2D): void,
+    resetTransform(ctx: CanvasRenderingContext2D): void,
+    setTransform(ctx: CanvasRenderingContext2D): void} | null= null
 
   const setupCyLogic = (cyEvent: Core) => {
     cy = cyEvent;
@@ -63,9 +69,32 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, isPolygonNeeded }: 
     cy.on('drag', 'node', event => {
       const availablePosition: Position = setNodeAvailablePosition(event.target.position());
       event.target.position(availablePosition);
+    });
+    cy.off('add move position');
+    cy.on('add move position', () => {
+
+      if (setNodesPosition) {
+        setNodesPosition(getNodesPositionInfo(imageSize));
+      }
     })
   }
 
+  const getNodesPositionInfo = (imageSize: Size): NodesPositionInfo => {
+    const nodesPosition = cy!.nodes().map((node: NodeSingular) => node.position());
+    const nodesPercentagePosition = nodesPosition.map((nodesPosition: Position) => {
+      return {
+        x: roundNumber(nodesPosition.x / imageSize.width),
+        y: roundNumber(nodesPosition.y / imageSize.height)
+      }
+    });
+
+    return {
+      position: nodesPosition,
+      percentagePosition: nodesPercentagePosition
+    }
+  }
+
+  //prevent to move over image borders
   const preventPanOverImageBorders = (currentImageSize: Size, canvasSize: Size): void => {
     if (!cy) { return; }
 
@@ -147,6 +176,13 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, isPolygonNeeded }: 
     if (cy.nodes().length === maxDotsQuantity) { return; }
 
     const clickPosition: Position = setNodeAvailablePosition(event.position);
+    addNode(clickPosition);
+
+    if (isPolygonNeeded) { drawPolygon(); }
+  }
+
+  const addNode = (clickPosition: Position) => {
+    if (!cy) { return; }
 
     const newNode: ElementDefinition = {
       data: {
@@ -159,8 +195,6 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, isPolygonNeeded }: 
     }
 
     cy.add(newNode);
-
-    if (isPolygonNeeded) { drawPolygon(); }
   }
 
   const drawPolygon = () => {
@@ -213,6 +247,8 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, isPolygonNeeded }: 
 
     return newPosition;
   }
+
+  const roundNumber = (num: number): number => +num.toFixed(2);
 
   return (
     <div>

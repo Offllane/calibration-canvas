@@ -7,3 +7,8 @@ export type Size = {
   width: number;
   height: number;
 }
+
+export type NodesPositionInfo = {
+  position: Array<Position>,
+  percentagePosition: Array<Position>
+}
