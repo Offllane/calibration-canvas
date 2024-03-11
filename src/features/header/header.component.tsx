@@ -18,7 +18,7 @@ export function HeaderComponent() {
           Polygon
         </Link>
         <Link
-          to='canvas-selection'
+          to='/canvas-select'
           className='menu__link'
         >
           Selection
