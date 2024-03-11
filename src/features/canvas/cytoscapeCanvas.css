@@ -1,0 +1,6 @@
+.wrapper {
+  display: flex;
+  align-items: center;
+  width: 80vw;
+  height: calc(100vh - 100px);
+}

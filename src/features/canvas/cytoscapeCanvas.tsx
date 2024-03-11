@@ -2,7 +2,7 @@ import './cytoscapeCanvas.css';
 import CytoscapeComponent from 'react-cytoscapejs';
 import {useCytoscape} from './cytoscapeInit.hook';
 import {cyCanvas} from './cytoscapeCanvas.hook';
-import {useEffect, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {Core, ElementDefinition, EventObject, NodeSingular} from 'cytoscape';
 import {NodesPositionInfo, Position, Size} from '../../types/types';
 
@@ -24,6 +24,7 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, isPolygonNeeded, se
   const [imageHeight, setImageHeight] = useState(0);
   const [imageRenderedWidth, setImageRenderedWidth] = useState(0);
   const [imageRenderedHeight, setImageRenderedHeight] = useState(0);
+  const wrapperElementRef = useRef<HTMLDivElement | null>(null);
 
   let cy: Core | null = null;
   let canvas: HTMLCanvasElement | null = null;
@@ -33,7 +34,7 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, isPolygonNeeded, se
     getCanvas(): HTMLCanvasElement,
     clear(ctx: CanvasRenderingContext2D): void,
     resetTransform(ctx: CanvasRenderingContext2D): void,
-    setTransform(ctx: CanvasRenderingContext2D): void} | null= null
+    setTransform(ctx: CanvasRenderingContext2D): void} | null = null
 
   const setupCyLogic = (cyEvent: Core) => {
     cy = cyEvent;
@@ -51,18 +52,12 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, isPolygonNeeded, se
     const canvasSize: Size = { width: cy.container()!.offsetWidth, height: cy.container()!.offsetHeight };
 
     cy.off('mousemove');
-    cy.on('mousemove', () => {
-      preventPanOverImageBorders(imageSize, canvasSize)
-    });
+    cy.on('mousemove', () => preventPanOverImageBorders(imageSize, canvasSize));
     cy.off('mouseup');
-    cy.on('mouseup', () => {
-      preventPanOverImageBorders(imageSize, canvasSize);
-    });
+    cy.on('mouseup', () => preventPanOverImageBorders(imageSize, canvasSize));
     cy.off('zoom');
-    cy.on('zoom', () => {
-      resizeCanvas();
-      preventPanOverImageBorders(imageSize, canvasSize);
-    });
+    cy.on('zoom', () => preventPanOverImageBorders(imageSize, canvasSize));
+    cy.on('resize', () => preventPanOverImageBorders(imageSize, canvasSize));
     cy.off('click');
     cy.on('click', (event: EventObject) => handleClick(event));
     cy.off('drag')
@@ -72,11 +67,9 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, isPolygonNeeded, se
     });
     cy.off('add move position');
     cy.on('add move position', () => {
-
-      if (setNodesPosition) {
-        setNodesPosition(getNodesPositionInfo(imageSize));
-      }
-    })
+      if (!setNodesPosition) { return; }
+      setNodesPosition(getNodesPositionInfo(imageSize));
+    });
   }
 
   const getNodesPositionInfo = (imageSize: Size): NodesPositionInfo => {
@@ -115,13 +108,20 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, isPolygonNeeded, se
     // console.log(currentPanPosition.x, canvasSize.width, currentImageSize.width, currentZoom); // keep for testing in future
   }
 
+  const calculateMinZoom = (): number => {
+    const wrapperElementWidth = wrapperElementRef.current?.offsetWidth ?? 0;
+    return wrapperElementWidth / imageWidth;
+  }
+
   const resizeCanvas = (): void => {
     if (!cy) { return; }
 
-    const currentZoom = cy.zoom();
+    const minZoom = calculateMinZoom();
+    cy.minZoom(minZoom);
+    cy.zoom(minZoom);
 
-    setImageRenderedWidth(imageWidth * currentZoom);
-    setImageRenderedHeight(imageHeight * currentZoom);
+    setImageRenderedWidth(imageWidth * minZoom);
+    setImageRenderedHeight(imageHeight * minZoom);
   }
 
   const drawImage = async (cy: Core, imageSrc: string) => {
@@ -141,7 +141,7 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, isPolygonNeeded, se
       fillPolygonBackground();
     });
 
-    setImageWidth(background.width)
+    setImageWidth(background.width);
     setImageHeight(background.height);
   }
 
@@ -158,18 +158,6 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, isPolygonNeeded, se
       }
     })
   }
-
-  useEffect(() => {
-    if (!imageSrc || !cy) { return; }
-
-    drawImage(cy, imageSrc).then();
-  }, [imageSrc]);
-
-  useEffect(() => {
-    if (!imageSrc || !cy) { return; }
-
-    resizeCanvas();
-  }, [imageWidth, imageHeight]);
 
   const handleClick = (event: EventObject) => {
     if (!cy) { return; }
@@ -217,7 +205,7 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, isPolygonNeeded, se
   }
 
   const fillPolygonBackground = () => {
-    if (!cy || !canvas || !ctx) { return; }
+    if (!cy || !ctx) { return; }
     if (!isPolygonNeeded) { return; }
     if (cy.nodes().length !== maxDotsQuantity) { return; }
 
@@ -244,27 +232,42 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, isPolygonNeeded, se
     if (position.y < topBottomForbiddenAreaSize) { newPosition.y = topBottomForbiddenAreaSize + 1; } // top 5% area
     if (position.y > imageSize.height - topBottomForbiddenAreaSize) { newPosition.y = imageSize.height - topBottomForbiddenAreaSize - 1; } // bottom 5% area
 
-
     return newPosition;
   }
 
   const roundNumber = (num: number): number => +num.toFixed(2);
 
+  useEffect(() => {
+    if (!imageSrc || !cy) { return; }
+
+    drawImage(cy, imageSrc).then();
+  }, [imageSrc]);
+
+  useEffect(() => {
+    if (!imageSrc || !cy) { return; }
+
+    resizeCanvas();
+
+    window.addEventListener('resize', resizeCanvas);
+
+    return () => window.removeEventListener('resize', resizeCanvas);
+  }, [imageWidth, imageHeight]);
+
   return (
-    <div>
+    <div
+      id='wrapper'
+      className='wrapper'
+      ref={wrapperElementRef}
+    >
       <CytoscapeComponent
         className={'cytoscape-component'}
         elements={CytoscapeComponent.normalizeElements(graphData)}
         style={{
           width: imageRenderedWidth,
-          maxWidth: '80vw',
           height: imageRenderedHeight,
-          maxHeight: '80vh',
       }}
         zoomingEnabled={true}
-        zoom={1}
-        maxZoom={3}
-        minZoom={.3}
+        maxZoom={4}
         layout={layout}
         // @ts-ignore
         stylesheet={styleSheet}
