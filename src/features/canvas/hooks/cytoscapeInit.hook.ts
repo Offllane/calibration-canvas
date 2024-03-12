@@ -1,6 +1,6 @@
 import {useState} from 'react';
 import {ElementDefinition, Stylesheet} from "cytoscape";
-import pointer from '../../images/pointer.svg';
+import pointer from '../../../images/pointer.svg';
 
 export interface Node {
   id: string;

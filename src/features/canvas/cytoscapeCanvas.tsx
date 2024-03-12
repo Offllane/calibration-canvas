@@ -1,10 +1,11 @@
 import './cytoscapeCanvas.css';
 import CytoscapeComponent from 'react-cytoscapejs';
-import {useCytoscape} from './cytoscapeInit.hook';
+import {useCytoscape} from './hooks/cytoscapeInit.hook';
 import {cyCanvas} from './cytoscapeCanvas.hook';
 import {useEffect, useRef, useState} from 'react';
 import {Core, ElementDefinition, EventObject, NodeSingular, NodeCollection} from 'cytoscape';
 import {NodesPositionInfo, Position, Size} from '../../types/types';
+import {useCytoscapeRectangle} from "./hooks/cytoscape-rectangle.hook";
 
 interface CytoscapeCanvasProps {
   imageSrc: string | null;
@@ -37,6 +38,74 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, isPolygonNeeded, is
   let cy: Core | null = null;
   let canvas: HTMLCanvasElement | null = null;
   let ctx: CanvasRenderingContext2D | null = null;
+
+
+  const drawPolygon = () => {
+    if (!cy) { return; }
+    if (cy.nodes().length !== maxDotsQuantity) { return; }
+
+    const edges: ElementDefinition[] = cy.nodes().map((_, index) => {
+      const targetIndex: number = index + 1 === cy!.nodes().length ? 0 : index + 1;
+      let id = `edge${index}`
+      let label = ''
+
+      if (isDrawRectangle && index === 0) {
+        const width = cy!.nodes()[1].position().x - cy!.nodes()[0].position().x;
+
+        id = `edgefirst`
+        label = `${Math.round(width)}px ---- ${Math.round(width/imageWidth * 100)}%`
+      }
+
+      return {
+        data: {
+          id,
+          source: `dot${index}`,
+          target: `dot${targetIndex}`,
+          label,
+        },
+        selectable: !isDrawRectangle
+      }
+    });
+
+    cy.add(edges);
+
+    if (isDrawRectangle) {
+      setStyleSheet(prevState => {
+        return [
+          ...prevState,
+          {
+            selector: '#edgefirst',
+            style: {
+              label: 'data(label)',
+              fontSize: 20,
+              fontWeight: 600,
+              'text-margin-y': -26,
+              'text-background-color': 'white',
+              'text-background-opacity': 1,
+            }
+          }
+        ]
+      })
+    }
+  }
+
+  const {
+    handleMouseDown,
+    handleMouseMove,
+    handleMouseUp
+  } = useCytoscapeRectangle({
+    isRectangleDraw,
+    startPosition,
+    setStartPosition,
+    setIsRectangleDraw,
+    cy,
+    setIsDraw,
+    drawPolygon,
+    setEndPosition,
+    isDraw,
+    endPosition
+  })
+
   // TODO recheck it, maybe it is not necessary already
   let bottomLayer: {
     getCanvas(): HTMLCanvasElement,
@@ -66,59 +135,19 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, isPolygonNeeded, is
       }
 
       if (isPolygonNeeded && cy?.nodes().length === maxDotsQuantity) {
-        setBeforePosition({
-          x: event.position.x,
-          y: event.position.y,
-        })
-        setIsInPolygon(IsPointInsidePolygon(cy!.nodes(), event.position.x, event.position.y));
+        setStartDrag(event)
       }
     })
 
     cy.off('mousemove');
-    cy.on('mousemove', (event) => {
+    cy.on('mousemove', (event: EventObject) => {
       preventPanOverImageBorders(imageSize, canvasSize)
       if (isDrawRectangle) {
         handleMouseMove(event)
       }
 
       if (isPolygonNeeded && cy && cy.nodes().length === maxDotsQuantity && isInPolygon) {
-        cy.userPanningEnabled(false)
-        cy?.boxSelectionEnabled(false)
-        if (!beforePosition) {
-          return;
-        }
-
-        const isAvailableDrag = cy.nodes().reduce((acc, node) => {
-          const currenPosition = {
-            x: node.position().x + (event.position.x - beforePosition.x),
-            y: node.position().y + (event.position.y - beforePosition.y),
-          }
-
-          if (!isNodeInAvailablePosition(currenPosition)) {
-            return false;
-          }
-
-          return acc;
-        }, true)
-
-
-        if (!isAvailableDrag) {
-          return
-        }
-
-        cy.nodes().forEach(node => {
-          const currentPosition = node.position();
-          const newPosition = {
-            x: currentPosition.x + (event.position.x - beforePosition.x),
-            y: currentPosition.y + (event.position.y - beforePosition.y),
-          };
-          node.position(newPosition);
-        });
-
-        setBeforePosition({
-          x: event.position.x,
-          y: event.position.y,
-        })
+        setPolygonPosition(event)
       }
     });
     cy.off('mouseup');
@@ -270,55 +299,6 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, isPolygonNeeded, is
     cy.add(newNode);
   }
 
-  const drawPolygon = () => {
-    if (!cy) { return; }
-    if (cy.nodes().length !== maxDotsQuantity) { return; }
-
-    const edges: ElementDefinition[] = cy.nodes().map((_, index) => {
-      const targetIndex: number = index + 1 === cy!.nodes().length ? 0 : index + 1;
-      let id = `edge${index}`
-      let label = ''
-
-      if (isDrawRectangle && index === 0) {
-        const width = cy!.nodes()[1].position().x - cy!.nodes()[0].position().x;
-
-        id = `edgefirst`
-        label = `${Math.round(width)}px ---- ${Math.round(width/imageWidth * 100)}%`
-      }
-
-      return {
-        data: {
-          id,
-          source: `dot${index}`,
-          target: `dot${targetIndex}`,
-          label,
-        },
-        selectable: !isDrawRectangle
-      }
-    });
-
-    cy.add(edges);
-
-    if (isDrawRectangle) {
-      setStyleSheet(prevState => {
-        return [
-          ...prevState,
-          {
-            selector: '#edgefirst',
-            style: {
-              label: 'data(label)',
-              fontSize: 20,
-              fontWeight: 600,
-              'text-margin-y': -26,
-              'text-background-color': 'white',
-              'text-background-opacity': 1,
-            }
-          }
-        ]
-      })
-    }
-  }
-
   function IsPointInsidePolygon(p: NodeCollection, x: number, y: number): boolean {
     let npol = p.length;
     let j = npol - 1;
@@ -381,75 +361,53 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, isPolygonNeeded, is
 
   const roundNumber = (num: number): number => +num.toFixed(2);
 
-  const handleMouseDown = (event: any) => {
-    if (isRectangleDraw) {
+  const setPolygonPosition = (event: EventObject) => {
+    if (!cy) { return; }
+    cy.userPanningEnabled(false)
+    cy?.boxSelectionEnabled(false)
+    if (!beforePosition) {
       return;
     }
 
-    setIsDraw(true);
-    const position = event.position;
-    setStartPosition({x: position.x, y: position.y});
-    setEndPosition(undefined);
-  }
-
-  const handleMouseMove = (event: any) => {
-    if (!isDraw) {
-      return;
-    }
-
-    const position = event.position;
-    setEndPosition({x: position.x, y: position.y})
-  }
-
-  const handleMouseUp = () => {
-    if (!isDraw || !endPosition || !startPosition || !cy || isRectangleDraw) {
-      return;
-    }
-
-    const minX = Math.min(startPosition.x, endPosition.x);
-    const minY = Math.min(startPosition.y, endPosition.y);
-    const maxX = Math.max(startPosition.x, endPosition.x);
-    const maxY = Math.max(startPosition.y, endPosition.y);
-
-    const newRectangle: ElementDefinition[] = [
-      {
-        data: {
-          id: `dot0`,
-        },
-        position: { x: minX, y: minY },
-        grabbable: false
-      },
-      {
-        data: {
-          id: `dot1`,
-        },
-        position: { x: maxX, y: minY },
-        grabbable: false
-      },
-      {
-        data: {
-          id: `dot2`,
-        },
-        position: { x: maxX, y: maxY },
-        grabbable: false
-      },
-      {
-        data: {
-          id: `dot3`,
-        },
-        position: { x: minX, y: maxY },
-        grabbable: false
+    const isAvailableDrag = cy.nodes().reduce((acc, node) => {
+      const currenPosition = {
+        x: node.position().x + (event.position.x - beforePosition.x),
+        y: node.position().y + (event.position.y - beforePosition.y),
       }
-    ];
 
-    setIsDraw(false);
-    setIsRectangleDraw(true);
+      if (!isNodeInAvailablePosition(currenPosition)) {
+        return false;
+      }
 
-    newRectangle.forEach((item) => {
-      cy?.add(item);
+      return acc;
+    }, true)
+
+
+    if (!isAvailableDrag) {
+      return
+    }
+
+    cy.nodes().forEach(node => {
+      const currentPosition = node.position();
+      const newPosition = {
+        x: currentPosition.x + (event.position.x - beforePosition.x),
+        y: currentPosition.y + (event.position.y - beforePosition.y),
+      };
+      node.position(newPosition);
+    });
+
+    setBeforePosition({
+      x: event.position.x,
+      y: event.position.y,
     })
+  }
 
-    drawPolygon()
+  const setStartDrag = (event: EventObject) => {
+    setBeforePosition({
+      x: event.position.x,
+      y: event.position.y,
+    })
+    setIsInPolygon(IsPointInsidePolygon(cy!.nodes(), event.position.x, event.position.y));
   }
 
   useEffect(() => {
