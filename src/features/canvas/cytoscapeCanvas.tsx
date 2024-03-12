@@ -283,7 +283,7 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, isPolygonNeeded, is
         const width = cy!.nodes()[1].position().x - cy!.nodes()[0].position().x;
 
         id = `edgefirst`
-        label = `${width}px ---- ${(width/imageWidth * 100).toFixed(2)}%`
+        label = `${Math.round(width)}px ---- ${Math.round(width/imageWidth * 100)}%`
       }
 
       return {
@@ -293,7 +293,7 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, isPolygonNeeded, is
           target: `dot${targetIndex}`,
           label,
         },
-        selectable: true
+        selectable: !isDrawRectangle
       }
     });
 
@@ -416,25 +416,29 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, isPolygonNeeded, is
         data: {
           id: `dot0`,
         },
-        position: { x: minX, y: minY }
+        position: { x: minX, y: minY },
+        grabbable: false
       },
       {
         data: {
           id: `dot1`,
         },
-        position: { x: maxX, y: minY }
+        position: { x: maxX, y: minY },
+        grabbable: false
       },
       {
         data: {
           id: `dot2`,
         },
-        position: { x: maxX, y: maxY }
+        position: { x: maxX, y: maxY },
+        grabbable: false
       },
       {
         data: {
           id: `dot3`,
         },
-        position: { x: minX, y: maxY }
+        position: { x: minX, y: maxY },
+        grabbable: false
       }
     ];
 
