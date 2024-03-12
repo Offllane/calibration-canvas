@@ -88,22 +88,19 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, isPolygonNeeded, is
           return;
         }
 
-        const isAvailableDrag = cy.nodes().reduce((acc, node) => {
-          const currenPosition = {
-            x: node.position().x + (event.position.x - beforePosition.x),
-            y: node.position().y + (event.position.y - beforePosition.y),
-          }
-          if (!isNodeInAvailablePosition(currenPosition)) {
-            acc = false;
-          }
-
-          return acc;
-        }, true)
-
-
-        if (!isAvailableDrag) {
-          return
-        }
+        // const isAvailableDrag = cy.nodes().reduce((acc, node) => {
+        //   const currenPosition = {
+        //     x: node.position().x + (event.position.x - beforePosition.x),
+        //     y: node.position().y + (event.position.y - beforePosition.y),
+        //   }
+        //
+        //   return acc;
+        // }, true)
+        //
+        //
+        // if (!isAvailableDrag) {
+        //   return
+        // }
 
         cy.nodes().forEach(node => {
           const currentPosition = node.position();
@@ -325,6 +322,13 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, isPolygonNeeded, is
     const xp = p.map((node) => node.position().x)
     const yp = p.map((node) => node.position().y)
     for (let i = 0; i < npol;i++){
+
+      const isClickInNode = Math.abs(Math.pow(x - xp[j], 2) - Math.pow(y - yp[j], 2)) <= 25;
+
+      if (xp[j] === x && yp[j] === y || isClickInNode) {
+        return false;
+      }
+
       if ((((yp[i]<=y) && (y<yp[j])) || ((yp[j]<=y) && (y<yp[i]))) &&
         (x > (xp[j] - xp[i]) * (y - yp[i]) / (yp[j] - yp[i]) + xp[i])) {
         c = !c
