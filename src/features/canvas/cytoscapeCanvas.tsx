@@ -2,7 +2,7 @@ import './cytoscapeCanvas.css';
 import CytoscapeComponent from 'react-cytoscapejs';
 import {useCytoscape} from './hooks/cytoscapeInit.hook';
 import {cyCanvas} from './cytoscapeCanvas.hook';
-import {useEffect, useRef, useState} from 'react';
+import {useEffect, useMemo, useRef, useState} from 'react';
 import {Core, ElementDefinition, EventObject, NodeSingular} from 'cytoscape';
 import {NodesPositionInfo, Position, Size} from '../../types/types';
 import {useCytoscapeRectangle} from "./hooks/cytoscape-rectangle.hook";
@@ -31,25 +31,14 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, isPolygonNeeded, is
   const [isRectangleDraw, setIsRectangleDraw] = useState(false);
   const [isInPolygon, setIsInPolygon] = useState(false);
   const wrapperElementRef = useRef<HTMLDivElement | null>(null);
-  const [cy, setCy] = useState<Core | null>(null)
-
-  let canvas: HTMLCanvasElement | null = null;
-  let ctx: CanvasRenderingContext2D | null = null;
-
-  const setNodeAvailablePosition = (position: Position): Position => {
-    const newPosition: Position = {...position};
-    const imageSize: Size = { width: imageWidth, height: imageHeight };
-    const forbiddenSpaceInPercent = isPolygonNeeded ? 0.000001 : 0.05;
-    const leftRightForbiddenAreaSize = ~~(imageSize.width * forbiddenSpaceInPercent);
-    const topBottomForbiddenAreaSize = ~~(imageSize.height * forbiddenSpaceInPercent);
-
-    if (position.x < leftRightForbiddenAreaSize) { newPosition.x = leftRightForbiddenAreaSize + 1; } // left 5% area
-    if (position.x > imageSize.width - leftRightForbiddenAreaSize) { newPosition.x = imageSize.width - leftRightForbiddenAreaSize - 1; } // right 5% area
-    if (position.y < topBottomForbiddenAreaSize) { newPosition.y = topBottomForbiddenAreaSize + 1; } // top 5% area
-    if (position.y > imageSize.height - topBottomForbiddenAreaSize) { newPosition.y = imageSize.height - topBottomForbiddenAreaSize - 1; } // bottom 5% area
-
-    return newPosition;
-  }
+  const [cy, setCy] = useState<Core | null>(null);
+  const [ctx, setCtx] = useState<CanvasRenderingContext2D | null>(null);
+  const [canvas, setCanvas] = useState<HTMLCanvasElement | null>(null);
+  const [bottomLayer, setBottomLayer] = useState<{
+    getCanvas(): HTMLCanvasElement,
+    clear(ctx: CanvasRenderingContext2D): void,
+    resetTransform(ctx: CanvasRenderingContext2D): void,
+    setTransform(ctx: CanvasRenderingContext2D): void} | null>(null);
 
   const {
     handleMouseDown,
@@ -75,13 +64,6 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, isPolygonNeeded, is
     setIsInPolygon
   })
 
-  // TODO recheck it, maybe it is not necessary already
-  let bottomLayer: {
-    getCanvas(): HTMLCanvasElement,
-    clear(ctx: CanvasRenderingContext2D): void,
-    resetTransform(ctx: CanvasRenderingContext2D): void,
-    setTransform(ctx: CanvasRenderingContext2D): void} | null = null
-
   const setupCyLogic = (cyEvent: Core) => {
     setCy(cyEvent);
   }
@@ -89,12 +71,25 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, isPolygonNeeded, is
   useEffect(() => {
     if (!cy) { return; }
 
-    bottomLayer = cyCanvas(cy);
-    canvas = bottomLayer.getCanvas();
-    ctx = canvas.getContext('2d');
-
-    addEventListeners();
+    setBottomLayer(cyCanvas(cy))
   }, [cy]);
+
+  useEffect(() => {
+    if (!bottomLayer) { return; }
+
+    setCanvas(bottomLayer.getCanvas())
+  }, [bottomLayer]);
+
+  useEffect(() => {
+    if (!canvas) { return; }
+
+    setCtx(canvas.getContext('2d'))
+  }, [canvas]);
+
+  useEffect(() => {
+    if (!ctx) { return; }
+
+  }, [ctx]);
 
   const addEventListeners = () => {
     if (!cy) { return; }
@@ -246,7 +241,7 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, isPolygonNeeded, is
     })
   }
 
-  const handleClick = (event: EventObject) => {
+  function handleClick (event: EventObject) {
     if (!cy) { return; }
     if (cy.nodes().length >= maxDotsQuantity) {
       return;
@@ -291,21 +286,36 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, isPolygonNeeded, is
 
   const roundNumber = (num: number): number => +num.toFixed(2);
 
+  function setNodeAvailablePosition (position: Position): Position {
+    const newPosition: Position = {...position};
+    const imageSize: Size = { width: imageWidth, height: imageHeight };
+    const forbiddenSpaceInPercent = isPolygonNeeded ? 0.000001 : 0.05;
+    const leftRightForbiddenAreaSize = ~~(imageSize.width * forbiddenSpaceInPercent);
+    const topBottomForbiddenAreaSize = ~~(imageSize.height * forbiddenSpaceInPercent);
+
+    if (position.x < leftRightForbiddenAreaSize) { newPosition.x = leftRightForbiddenAreaSize + 1; } // left 5% area
+    if (position.x > imageSize.width - leftRightForbiddenAreaSize) { newPosition.x = imageSize.width - leftRightForbiddenAreaSize - 1; } // right 5% area
+    if (position.y < topBottomForbiddenAreaSize) { newPosition.y = topBottomForbiddenAreaSize + 1; } // top 5% area
+    if (position.y > imageSize.height - topBottomForbiddenAreaSize) { newPosition.y = imageSize.height - topBottomForbiddenAreaSize - 1; } // bottom 5% area
+
+    return newPosition;
+  }
+
   useEffect(() => {
-    if (!imageSrc || !cy) { return; }
+    if (!imageSrc || !cy || !ctx || !bottomLayer) { return; }
 
     drawImage(cy, imageSrc).then();
-  }, [imageSrc]);
+  }, [imageSrc, cy, bottomLayer, ctx]);
 
   useEffect(() => {
     if (!imageSrc || !cy) { return; }
-
+    addEventListeners()
     resizeCanvas();
 
     window.addEventListener('resize', resizeCanvas);
 
     return () => window.removeEventListener('resize', resizeCanvas);
-  }, [imageWidth, imageHeight]);
+  }, [imageWidth, imageHeight, cy]);
 
   return (
     <div
