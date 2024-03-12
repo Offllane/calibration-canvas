@@ -84,12 +84,17 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, isPolygonNeeded, is
 
   const setupCyLogic = (cyEvent: Core) => {
     setCy(cyEvent);
-    bottomLayer = cyCanvas(cyEvent);
+  }
+
+  useEffect(() => {
+    if (!cy) { return; }
+
+    bottomLayer = cyCanvas(cy);
     canvas = bottomLayer.getCanvas();
     ctx = canvas.getContext('2d');
 
     addEventListeners();
-  }
+  }, [cy]);
 
   const addEventListeners = () => {
     if (!cy) { return; }
