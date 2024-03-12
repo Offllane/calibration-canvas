@@ -160,8 +160,8 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, isPolygonNeeded, is
     const nodesPosition = cy!.nodes().map((node: NodeSingular) => node.position());
     const nodesPercentagePosition = nodesPosition.map((nodesPosition: Position) => {
       return {
-        x: roundNumber(nodesPosition.x / imageSize.width),
-        y: roundNumber(nodesPosition.y / imageSize.height)
+        x: nodesPosition.x / imageSize.width,
+        y: nodesPosition.y / imageSize.height
       }
     });
 
