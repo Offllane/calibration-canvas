@@ -31,13 +31,10 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, isPolygonNeeded, is
   const [isRectangleDraw, setIsRectangleDraw] = useState(false);
   const [isInPolygon, setIsInPolygon] = useState(false);
   const wrapperElementRef = useRef<HTMLDivElement | null>(null);
+  const [cy, setCy] = useState<Core | null>(null)
 
-  let cy: Core | null = null;
   let canvas: HTMLCanvasElement | null = null;
   let ctx: CanvasRenderingContext2D | null = null;
-
-
-
 
   const setNodeAvailablePosition = (position: Position): Position => {
     const newPosition: Position = {...position};
@@ -86,8 +83,8 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, isPolygonNeeded, is
     setTransform(ctx: CanvasRenderingContext2D): void} | null = null
 
   const setupCyLogic = (cyEvent: Core) => {
-    cy = cyEvent;
-    bottomLayer = cyCanvas(cy);
+    setCy(cyEvent);
+    bottomLayer = cyCanvas(cyEvent);
     canvas = bottomLayer.getCanvas();
     ctx = canvas.getContext('2d');
 
