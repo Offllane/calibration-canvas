@@ -88,19 +88,23 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, isPolygonNeeded, is
           return;
         }
 
-        // const isAvailableDrag = cy.nodes().reduce((acc, node) => {
-        //   const currenPosition = {
-        //     x: node.position().x + (event.position.x - beforePosition.x),
-        //     y: node.position().y + (event.position.y - beforePosition.y),
-        //   }
-        //
-        //   return acc;
-        // }, true)
-        //
-        //
-        // if (!isAvailableDrag) {
-        //   return
-        // }
+        const isAvailableDrag = cy.nodes().reduce((acc, node) => {
+          const currenPosition = {
+            x: node.position().x + (event.position.x - beforePosition.x),
+            y: node.position().y + (event.position.y - beforePosition.y),
+          }
+
+          if (!isNodeInAvailablePosition(currenPosition)) {
+            return false;
+          }
+
+          return acc;
+        }, true)
+
+
+        if (!isAvailableDrag) {
+          return
+        }
 
         cy.nodes().forEach(node => {
           const currentPosition = node.position();
@@ -357,7 +361,7 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, isPolygonNeeded, is
   const setNodeAvailablePosition = (position: Position): Position => {
     const newPosition: Position = {...position};
     const imageSize: Size = { width: imageWidth, height: imageHeight };
-    const forbiddenSpaceInPercent = 0.05;
+    const forbiddenSpaceInPercent = isPolygonNeeded ? 0.000001 : 0.05;
     const leftRightForbiddenAreaSize = ~~(imageSize.width * forbiddenSpaceInPercent);
     const topBottomForbiddenAreaSize = ~~(imageSize.height * forbiddenSpaceInPercent);
 
