@@ -11,6 +11,7 @@ export function CanvasPolygonPage() {
           <CytoscapeCanvas
               imageSrc={imageSrc}
               maxDotsQuantity={6}
+              canvasTask='polygon'
               isPolygonNeeded={true}
               setNodesPosition={setNodesPosition}
           />

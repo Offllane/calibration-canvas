@@ -1,6 +1,6 @@
 import {Core} from 'cytoscape';
 
-export function cyCanvas(cy: Core, args?: any) {
+export function relativePositionCanvas(cy: Core, args?: any) {
   const container = cy.container()!;
 
   const canvas = document.createElement("canvas");

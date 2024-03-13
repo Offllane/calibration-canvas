@@ -12,6 +12,7 @@ export function CanvasPointsPage() {
       <CytoscapeCanvas
         imageSrc={imageSrc}
         maxDotsQuantity={4}
+        canvasTask='points'
         setNodesPosition={setNodesPosition}
       />
       <aside>

@@ -9,6 +9,7 @@ export function CanvasSelectPage() {
       <CytoscapeCanvas
         imageSrc={imageSrc}
         maxDotsQuantity={4}
+        canvasTask='selection'
         isRectangleNeeded={true}
       />
       <aside>
