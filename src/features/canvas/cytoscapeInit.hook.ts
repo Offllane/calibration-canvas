@@ -14,17 +14,17 @@ export interface GraphData {
 }
 
 interface CytoscapeParams {
-  isDrawRectangle?: boolean;
+  isRectangleNeeded?: boolean;
   isPolygonNeeded?: boolean;
 }
 
-export function useCytoscape({ isDrawRectangle, isPolygonNeeded }: CytoscapeParams) {
+export function useCytoscape({ isRectangleNeeded, isPolygonNeeded }: CytoscapeParams) {
   const [graphData, setGraphData] = useState<GraphData>({
     nodes: [],
     edges: []
   });
 
-  const nodeStyle = isDrawRectangle || isPolygonNeeded ?
+  const nodeStyle = isRectangleNeeded || isPolygonNeeded ?
     {
       width: 10,
       height: 10,
