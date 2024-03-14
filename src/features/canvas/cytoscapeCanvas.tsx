@@ -241,8 +241,13 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, canvasTask, forbidd
   }
 
   const calculateMinZoom = (): number => {
-    const wrapperElementWidth = wrapperElementRef.current?.offsetWidth ?? 0;
-    return wrapperElementWidth / imageWidth;
+    if (imageWidth > imageHeight) {
+      const wrapperElementWidth = wrapperElementRef.current?.offsetWidth ?? 0;
+      return wrapperElementWidth / imageWidth;
+    } else {
+      const wrapperElementHeight = wrapperElementRef.current?.offsetHeight ?? 0;
+      return wrapperElementHeight / imageHeight;
+    }
   }
 
   const resizeCanvas = (): void => {
