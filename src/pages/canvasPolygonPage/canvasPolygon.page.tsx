@@ -12,7 +12,6 @@ export function CanvasPolygonPage() {
               imageSrc={imageSrc}
               maxDotsQuantity={6}
               canvasTask='polygon'
-              isPolygonNeeded={true}
               setNodesPosition={setNodesPosition}
           />
           <aside>

@@ -13,6 +13,7 @@ export function CanvasPointsPage() {
         imageSrc={imageSrc}
         maxDotsQuantity={4}
         canvasTask='points'
+        forbiddenAreaInPercent={0.05}
         setNodesPosition={setNodesPosition}
       />
       <aside>

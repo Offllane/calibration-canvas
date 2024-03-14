@@ -11,12 +11,11 @@ interface CytoscapeCanvasProps {
   imageSrc: string | null;
   maxDotsQuantity: number;
   canvasTask: CanvasTask;
-  isPolygonNeeded?: boolean;
-  isRectangleNeeded?: boolean;
-  setNodesPosition?: (data: NodesPositionInfo) => void;
+  forbiddenAreaInPercent?: number;
+  setNodesPosition: (data: NodesPositionInfo) => void;
 }
 
-export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, canvasTask, isPolygonNeeded, isRectangleNeeded, setNodesPosition }: CytoscapeCanvasProps) {
+export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, canvasTask, forbiddenAreaInPercent = 0, setNodesPosition }: CytoscapeCanvasProps) {
   const {
     graphData,
     layout,
@@ -48,10 +47,13 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, canvasTask, isPolyg
     canvas = bottomLayer.getCanvas();
     ctx = canvas.getContext('2d');
 
-    addEventListeners();
+    const imageSize: Size = { width: imageWidth, height: imageHeight };
+    const canvasSize: Size = { width: cy.container()!.offsetWidth, height: cy.container()!.offsetHeight };
 
+    addGeneralEventListeners(imageSize, canvasSize);
     setupCanvasAccordingToTask(canvasTask);
-    setStylesheetAccordingToTask(canvasTask)
+    setStylesheetAccordingToTask(canvasTask);
+    addEventsAccordingToTask(canvasTask);
   }
 
   const setStylesheetAccordingToTask = (canvasTask: CanvasTask) => {
@@ -80,68 +82,94 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, canvasTask, isPolyg
     }
   }
 
-  const addEventListeners = () => {
+  const addGeneralEventListeners = (imageSize: Size, canvasSize: Size) => {
     if (!cy) { return; }
-
-    const imageSize: Size = { width: imageWidth, height: imageHeight };
-    const canvasSize: Size = { width: cy.container()!.offsetWidth, height: cy.container()!.offsetHeight };
-
     cy.off('mousedown')
-    cy.on('mousedown', handleMouseDown);
     cy.off('mousemove');
-    cy.on('mousemove', (event: EventObject) => handleMouseMove({imageSize, canvasSize, event}));
     cy.off('mouseup');
-    cy.on('mouseup', (event: EventObject) => handleMouseUp({imageSize, canvasSize, event}));
     cy.off('zoom');
+    cy.off('click');
+    cy.off('drag');
+    cy.off('add move position');
+    cy.off('boxstart');
+    cy.off('boxend');
+
+    cy.on('mousemove', () => preventPanOverImageBorders(imageSize, canvasSize));
+    cy.on('mouseup', () => preventPanOverImageBorders(imageSize, canvasSize));
     cy.on('zoom', () => preventPanOverImageBorders(imageSize, canvasSize));
     cy.on('resize', () => preventPanOverImageBorders(imageSize, canvasSize));
-    cy.off('click');
-    cy.on('click', (event: EventObject) => handleClick(event));
-    cy.off('drag')
-    cy.on('drag', 'node', event => {
-      const availablePosition: Position = setNodeAvailablePosition(event.target.position());
-      event.target.position(availablePosition);
-    });
-    cy.off('add move position');
-    cy.on('add move position', () => {
-      if (!setNodesPosition) { return; }
-      setNodesPosition(getNodesPositionInfo(imageSize));
-    });
-    // selection only
-    cy.off('boxstart');
-    cy.on('boxstart', (event: EventObject) => handleBoxStart(event));
-    cy.off('boxend');
-    cy.on('boxend', (event: EventObject) => handleBoxEnd(event));
+    cy.on('add move position', () => setNodesPosition(getNodesPositionInfo(imageSize)));
+    cy.on('drag', 'node', handleDragNode);
   }
 
-  const handleMouseDown = (event: EventObject) => {
-    if (isPolygonNeeded && cy?.nodes().length === maxDotsQuantity) {
-      const isInsidePolygon: boolean = isClickedInsidePolygon(cy!.nodes(), event.position.x, event.position.y);
-      setIsInsidePolygon(isInsidePolygon);
+  const addEventsAccordingToTask = (canvasTask: CanvasTask) => {
+    if (!cy) { return; }
+
+    switch (canvasTask) {
+      case 'points': {
+        cy.on('click', handlePointsTaskClick);
+        return;
+      }
+      case 'polygon': {
+        cy.on('click', handlePolygonTaskClick);
+        cy.on('mousedown', handlePolygonTaskMouseDown);
+        cy.on('mouseup', handlePolygonTaskMouseUp);
+        cy.on('mousemove', handlePolygonTaskMouseMove);
+        return;
+      }
+      case 'selection': {
+        cy.on('boxstart', handleSelectionTaskBoxStart);
+        cy.on('boxend', handleSelectionTaskBoxEnd);
+        return;
+      }
     }
   }
 
-  const handleMouseMove = (params: { imageSize: Size, canvasSize: Size, event: EventObject }) => {
-    const { imageSize, canvasSize, event } = params;
-
-    preventPanOverImageBorders(imageSize, canvasSize);
-    if (isPolygonNeeded && isInsidePolygon) { movePolygon(event); }
+  const handleSelectionTaskBoxStart = (event: EventObject) => {
+    startDrawRectangle(event);
   }
 
-  const handleMouseUp = (params: { imageSize: Size, canvasSize: Size, event: EventObject }) => {
-    const { imageSize, canvasSize } = params;
-    preventPanOverImageBorders(imageSize, canvasSize);
+  const handleSelectionTaskBoxEnd = (event: EventObject) => {
+    finishRectangleDrawing(event);
+  }
+
+  const handlePolygonTaskMouseDown = (event: EventObject) => {
+    if (cy!.nodes().length !== maxDotsQuantity) { return; }
+
+    const isInsidePolygon: boolean = isClickedInsidePolygon(cy!.nodes(), event.position.x, event.position.y);
+    setIsInsidePolygon(isInsidePolygon);
+  }
+
+  const handlePolygonTaskMouseMove = (event: EventObject) => {
+    if (!isInsidePolygon) { return; }
+
+    movePolygon(event);
+  }
+
+  const handlePolygonTaskMouseUp = () => {
     setIsInsidePolygon(false);
     cy!.userPanningEnabled(true);
     cy!.boxSelectionEnabled(true);
   }
 
-  const handleBoxStart = (boxStartEvent: EventObject) => {
-    if (isRectangleNeeded) { startDrawRectangle(boxStartEvent); }
+  const handlePointsTaskClick = (event: EventObject) => {
+    if (cy!.nodes().length === maxDotsQuantity) { return; }
+
+    const clickPosition: Position = setNodeAvailablePosition(event.position);
+    addNode(clickPosition);
   }
 
-  const handleBoxEnd = (boxEndEvent: EventObject) => {
-    if (isRectangleNeeded) { finishRectangleDrawing(boxEndEvent); }
+  const handlePolygonTaskClick = (event: EventObject) => {
+    if (cy!.nodes().length === maxDotsQuantity) { return; }
+
+    const clickPosition: Position = setNodeAvailablePosition(event.position);
+    addNode(clickPosition);
+    drawPolygon();
+  }
+
+  const handleDragNode = (event: EventObject) => {
+    const availablePosition: Position = setNodeAvailablePosition(event.target.position());
+    event.target.position(availablePosition);
   }
 
   const getNodesPositionInfo = (imageSize: Size): NodesPositionInfo => {
@@ -209,8 +237,7 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, canvasTask, isPolyg
       ctx.save();
       ctx.drawImage(background, 0, 0);
 
-      // draw polygon
-      fillPolygonBackground();
+      if (canvasTask === 'polygon') { fillPolygonBackground(); }
     });
 
     setImageWidth(background.width);
@@ -229,17 +256,6 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, canvasTask, isPolyg
         reject(error)
       }
     })
-  }
-
-  const handleClick = (event: EventObject) => {
-    if (!cy) { return; }
-    if (isRectangleNeeded) { return; }
-    if (cy.nodes().length >= maxDotsQuantity) { return; }
-
-    const clickPosition: Position = setNodeAvailablePosition(event.position);
-    addNode(clickPosition);
-
-    if (isPolygonNeeded) { drawPolygon(); }
   }
 
   const addNode = (clickPosition: Position) => {
@@ -264,13 +280,32 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, canvasTask, isPolyg
     const edges: ElementDefinition[] = cy.nodes().map((_, index) => {
       const targetIndex: number = index + 1 === cy!.nodes().length ? 0 : index + 1;
       let id = `edge${index}`
+
+      return {
+        data: {
+          id,
+          source: `dot${index}`,
+          target: `dot${targetIndex}`,
+        }
+      }
+    });
+
+    cy.add(edges);
+  }
+
+  const drawRectangle = () => {
+    if (!cy) { return; }
+
+    const edges: ElementDefinition[] = cy.nodes().map((_, index) => {
+      const targetIndex: number = index + 1 === cy!.nodes().length ? 0 : index + 1;
+      let id = `edge${index}`
       let label = ''
 
-      if (isRectangleNeeded && index === 0) {
+      if (index === 0) {
         const width = cy!.nodes()[1].position().x - cy!.nodes()[0].position().x;
 
         id = `edgefirst`
-        label = `${Math.round(width)}px ---- ${Math.round(width/imageWidth * 100)}%`
+        label = `${Math.round(width)}px — ${Math.round(width/imageWidth * 100)}%`
       }
 
       return {
@@ -278,9 +313,8 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, canvasTask, isPolyg
           id,
           source: `dot${index}`,
           target: `dot${targetIndex}`,
-          label,
-        },
-        selectable: !isRectangleNeeded
+          label
+        }
       }
     });
 
@@ -343,8 +377,7 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, canvasTask, isPolyg
 
   const fillPolygonBackground = () => {
     if (!cy || !ctx) { return; }
-    if (!isPolygonNeeded) { return; }
-    if (cy.nodes().length < maxDotsQuantity) { return; }
+    if (cy.nodes().length !== maxDotsQuantity) { return; }
 
     ctx.fillStyle = 'rgba(0, 0, 255, 0.3)';
     ctx.beginPath();
@@ -360,10 +393,8 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, canvasTask, isPolyg
   const setNodeAvailablePosition = (position: Position): Position => {
     const newPosition: Position = {...position};
     const imageSize: Size = { width: imageWidth, height: imageHeight };
-    // TODO refactor it
-    const forbiddenSpaceInPercent = (isPolygonNeeded || isRectangleNeeded) ? 0.000001 : 0.05;
-    const leftRightForbiddenAreaSize = ~~(imageSize.width * forbiddenSpaceInPercent);
-    const topBottomForbiddenAreaSize = ~~(imageSize.height * forbiddenSpaceInPercent);
+    const leftRightForbiddenAreaSize = ~~(imageSize.width * forbiddenAreaInPercent);
+    const topBottomForbiddenAreaSize = ~~(imageSize.height * forbiddenAreaInPercent);
 
     if (position.x < leftRightForbiddenAreaSize) { newPosition.x = leftRightForbiddenAreaSize + 1; } // left 5% area
     if (position.x > imageSize.width - leftRightForbiddenAreaSize) { newPosition.x = imageSize.width - leftRightForbiddenAreaSize - 1; } // right 5% area
@@ -418,7 +449,7 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, canvasTask, isPolyg
 
     rectangleNodes.forEach((nodeData: ElementDefinition) => { cy!.add(nodeData); })
 
-    drawPolygon();
+    drawRectangle();
   }
 
   useEffect(() => {
