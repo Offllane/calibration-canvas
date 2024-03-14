@@ -41,7 +41,41 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, canvasTask, forbidd
     getCanvas(): HTMLCanvasElement,
     clear(ctx: CanvasRenderingContext2D): void,
     resetTransform(ctx: CanvasRenderingContext2D): void,
-    setTransform(ctx: CanvasRenderingContext2D): void} | null = null
+    setTransform(ctx: CanvasRenderingContext2D): void} | null = null;
+
+  const prepareImage = async (imageSrc: string): Promise<HTMLImageElement> => {
+    return new Promise((resolve, reject) => {
+      const background = new Image();
+      background.src = imageSrc;
+      background.onload = () => resolve(background);
+      background.onerror = (error) => reject(error);
+    })
+  }
+
+  const drawImage = async (cy: Core, imageSrc: string) => {
+    const image = await prepareImage(imageSrc);
+
+    cy.on("render cyCanvas.resize", () => {
+      if (!ctx || !bottomLayer) { return; }
+
+      // draw fixed elements
+      bottomLayer.resetTransform(ctx);
+      bottomLayer.clear(ctx);
+      bottomLayer.setTransform(ctx);
+      ctx.save();
+      ctx.drawImage(image, 0, 0);
+
+      if (canvasTask === 'polygon') {
+        const { fillPolygonBackground } = usePolygonTask({
+          cy, ctx, maxDotsQuantity, isInsidePolygon, addNode, setNodeAvailablePosition, setIsInsidePolygon
+        });
+        fillPolygonBackground();
+      }
+    });
+
+    setImageWidth(image.width);
+    setImageHeight(image.height);
+  }
 
   const setupCyLogic = (cyEvent: Core) => {
     cy = cyEvent;
@@ -56,6 +90,24 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, canvasTask, forbidd
     setupCanvasAccordingToTask(canvasTask);
     setStylesheetAccordingToTask(canvasTask);
     addEventsAccordingToTask(canvasTask);
+  }
+
+  const addGeneralEventListeners = (imageSize: Size, canvasSize: Size) => {
+    if (!cy) { return; }
+    cy.off('mousedown mousemove mouseup zoom click drag add move position boxstart boxend');
+
+    cy.on('mousemove mouseup zoom resize add move position', () => preventPanOverImageBorders(imageSize, canvasSize));
+    cy.on('add move position', () => setNodesPosition(getNodesPositionInfo(imageSize)));
+    cy.on('drag', 'node', handleDragNode);
+  }
+
+  const setupCanvasAccordingToTask = (canvasTask: CanvasTask) => {
+    switch (canvasTask) {
+      case 'selection': {
+        cy!.autoungrabify(true);
+        return;
+      }
+    }
   }
 
   const setStylesheetAccordingToTask = (canvasTask: CanvasTask) => {
@@ -73,24 +125,6 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, canvasTask, forbidd
         return;
       }
     }
-  }
-
-  const setupCanvasAccordingToTask = (canvasTask: CanvasTask) => {
-    switch (canvasTask) {
-      case 'selection': {
-        cy!.autoungrabify(true);
-        return;
-      }
-    }
-  }
-
-  const addGeneralEventListeners = (imageSize: Size, canvasSize: Size) => {
-    if (!cy) { return; }
-    cy.off('mousedown mousemove mouseup zoom click drag add move position boxstart boxend');
-
-    cy.on('mousemove mouseup zoom resize add move position', () => preventPanOverImageBorders(imageSize, canvasSize));
-    cy.on('add move position', () => setNodesPosition(getNodesPositionInfo(imageSize)));
-    cy.on('drag', 'node', handleDragNode);
   }
 
   const addEventsAccordingToTask = (canvasTask: CanvasTask) => {
@@ -142,6 +176,35 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, canvasTask, forbidd
     event.target.position(availablePosition);
   }
 
+  const addNode = (clickPosition: Position) => {
+    if (!cy) { return; }
+
+    const newNode: ElementDefinition = {
+      data: {
+        id: `dot${cy.nodes().length}`,
+        label: `${cy.nodes().length + 1}`
+      },
+      position: {x: clickPosition.x, y: clickPosition.y},
+      selectable: true
+    }
+
+    cy.add(newNode);
+  }
+
+  const setNodeAvailablePosition = (position: Position): Position => {
+    const newPosition: Position = {...position};
+    const imageSize: Size = { width: imageWidth, height: imageHeight };
+    const leftRightForbiddenAreaSize = ~~(imageSize.width * forbiddenAreaInPercent);
+    const topBottomForbiddenAreaSize = ~~(imageSize.height * forbiddenAreaInPercent);
+
+    if (position.x < leftRightForbiddenAreaSize) { newPosition.x = leftRightForbiddenAreaSize + 1; } // left 5% area
+    if (position.x > imageSize.width - leftRightForbiddenAreaSize) { newPosition.x = imageSize.width - leftRightForbiddenAreaSize - 1; } // right 5% area
+    if (position.y < topBottomForbiddenAreaSize) { newPosition.y = topBottomForbiddenAreaSize + 1; } // top 5% area
+    if (position.y > imageSize.height - topBottomForbiddenAreaSize) { newPosition.y = imageSize.height - topBottomForbiddenAreaSize - 1; } // bottom 5% area
+
+    return newPosition;
+  }
+
   const getNodesPositionInfo = (imageSize: Size): NodesPositionInfo => {
     const nodesPosition = cy!.nodes().map((node: NodeSingular) => node.position());
     const nodesPercentagePosition = nodesPosition.map((nodesPosition: Position) => {
@@ -157,7 +220,6 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, canvasTask, forbidd
     }
   }
 
-  //prevent to move over image borders
   const preventPanOverImageBorders = (currentImageSize: Size, canvasSize: Size): void => {
     if (!cy) { return; }
 
@@ -194,74 +256,6 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, canvasTask, forbidd
     setImageRenderedHeight(imageHeight * minZoom);
   }
 
-  const drawImage = async (cy: Core, imageSrc: string) => {
-    const background = await loadImage(imageSrc)
-
-    cy.on("render cyCanvas.resize", () => {
-      if (!ctx || !bottomLayer) { return; }
-
-      // draw fixed elements
-      bottomLayer.resetTransform(ctx);
-      bottomLayer.clear(ctx);
-      bottomLayer.setTransform(ctx);
-      ctx.save();
-      ctx.drawImage(background, 0, 0);
-
-      if (canvasTask === 'polygon') {
-        const { fillPolygonBackground } = usePolygonTask({
-          cy, ctx, maxDotsQuantity, isInsidePolygon, addNode, setNodeAvailablePosition, setIsInsidePolygon
-        });
-        fillPolygonBackground();
-      }
-    });
-
-    setImageWidth(background.width);
-    setImageHeight(background.height);
-  }
-
-  const loadImage = async (imageSrc: string): Promise<HTMLImageElement> => {
-    return new Promise((resolve, reject) => {
-      const background = new Image();
-      background.src = imageSrc;
-      background.onload = () => {
-        resolve(background)
-      }
-
-      background.onerror = (error) => {
-        reject(error)
-      }
-    })
-  }
-
-  const addNode = (clickPosition: Position) => {
-    if (!cy) { return; }
-
-    const newNode: ElementDefinition = {
-      data: {
-        id: `dot${cy.nodes().length}`,
-        label: `${cy.nodes().length + 1}`
-      },
-      position: {x: clickPosition.x, y: clickPosition.y},
-      selectable: true
-    }
-
-    cy.add(newNode);
-  }
-
-  const setNodeAvailablePosition = (position: Position): Position => {
-    const newPosition: Position = {...position};
-    const imageSize: Size = { width: imageWidth, height: imageHeight };
-    const leftRightForbiddenAreaSize = ~~(imageSize.width * forbiddenAreaInPercent);
-    const topBottomForbiddenAreaSize = ~~(imageSize.height * forbiddenAreaInPercent);
-
-    if (position.x < leftRightForbiddenAreaSize) { newPosition.x = leftRightForbiddenAreaSize + 1; } // left 5% area
-    if (position.x > imageSize.width - leftRightForbiddenAreaSize) { newPosition.x = imageSize.width - leftRightForbiddenAreaSize - 1; } // right 5% area
-    if (position.y < topBottomForbiddenAreaSize) { newPosition.y = topBottomForbiddenAreaSize + 1; } // top 5% area
-    if (position.y > imageSize.height - topBottomForbiddenAreaSize) { newPosition.y = imageSize.height - topBottomForbiddenAreaSize - 1; } // bottom 5% area
-
-    return newPosition;
-  }
-
   useEffect(() => {
     if (!imageSrc || !cy) { return; }
 
@@ -272,7 +266,6 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, canvasTask, forbidd
     if (!imageSrc || !cy) { return; }
 
     resizeCanvas();
-
     window.addEventListener('resize', resizeCanvas);
 
     return () => window.removeEventListener('resize', resizeCanvas);
