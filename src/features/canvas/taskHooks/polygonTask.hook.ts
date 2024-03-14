@@ -3,6 +3,7 @@ import {Position} from '../../../types/types';
 
 interface PolygonTaskProps {
   cy: Core;
+  ctx: CanvasRenderingContext2D | null;
   maxDotsQuantity: number;
   isInsidePolygon: boolean;
   setNodeAvailablePosition: (position: Position) => Position;
@@ -13,6 +14,7 @@ interface PolygonTaskProps {
 export function usePolygonTask(
   {
     cy,
+    ctx,
     maxDotsQuantity,
     isInsidePolygon,
     setNodeAvailablePosition,
@@ -126,10 +128,26 @@ export function usePolygonTask(
     };
   }
 
+  const fillPolygonBackground = () => {
+    if (!cy || !ctx) { return; }
+    if (cy.nodes().length !== maxDotsQuantity) { return; }
+
+    ctx.fillStyle = 'rgba(0, 0, 255, 0.3)';
+    ctx.beginPath();
+
+    cy.nodes().forEach((node) => {
+      ctx!.lineTo(node.position().x, node.position().y);
+    });
+
+    ctx.closePath();
+    ctx.fill();
+  }
+
   return {
     handlePolygonTaskClick,
     handlePolygonTaskMouseDown,
     handlePolygonTaskMouseUp,
-    handlePolygonTaskMouseMove
+    handlePolygonTaskMouseMove,
+    fillPolygonBackground
   }
 }

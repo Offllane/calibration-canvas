@@ -109,7 +109,7 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, canvasTask, forbidd
           handlePolygonTaskMouseDown,
           handlePolygonTaskMouseUp,
           handlePolygonTaskMouseMove
-        } = usePolygonTask({cy, maxDotsQuantity, isInsidePolygon, addNode, setNodeAvailablePosition, setIsInsidePolygon});
+        } = usePolygonTask({cy, ctx, maxDotsQuantity, isInsidePolygon, addNode, setNodeAvailablePosition, setIsInsidePolygon});
 
         cy.on('click', handlePolygonTaskClick);
         cy.on('mousedown', handlePolygonTaskMouseDown);
@@ -207,7 +207,12 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, canvasTask, forbidd
       ctx.save();
       ctx.drawImage(background, 0, 0);
 
-      if (canvasTask === 'polygon') { fillPolygonBackground(); }
+      if (canvasTask === 'polygon') {
+        const { fillPolygonBackground } = usePolygonTask({
+          cy, ctx, maxDotsQuantity, isInsidePolygon, addNode, setNodeAvailablePosition, setIsInsidePolygon
+        });
+        fillPolygonBackground();
+      }
     });
 
     setImageWidth(background.width);
@@ -241,21 +246,6 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, canvasTask, forbidd
     }
 
     cy.add(newNode);
-  }
-
-  const fillPolygonBackground = () => {
-    if (!cy || !ctx) { return; }
-    if (cy.nodes().length !== maxDotsQuantity) { return; }
-
-    ctx.fillStyle = 'rgba(0, 0, 255, 0.3)';
-    ctx.beginPath();
-
-    cy.nodes().forEach((node) => {
-      ctx!.lineTo(node.position().x, node.position().y);
-    });
-
-    ctx.closePath();
-    ctx.fill();
   }
 
   const setNodeAvailablePosition = (position: Position): Position => {
