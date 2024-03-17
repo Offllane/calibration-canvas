@@ -10,7 +10,7 @@ app.use(cors())
 
 const getImageFetch = async () => {
   try {
-    const imageName = 'frame-test2.jpeg'
+    const imageName = 'frame-test2.webp'
     const imagePath = path.join(__dirname, imageName)
     const buffer = await fs.readFile(imagePath)
 

@@ -9,6 +9,7 @@ import {pointsCanvasStylesheet, polygonCanvasStylesheet, selectionCanvasStyleshe
 import {usePolygonTask} from './taskHooks/polygonTask.hook';
 import {usePointsTask} from './taskHooks/pointsTask.hook';
 import {useSelectionTask} from './taskHooks/selectionTask.hook';
+import {Minimap} from '../minimap/minimap';
 
 interface CytoscapeCanvasProps {
   imageSrc: string | null;
@@ -26,15 +27,16 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, canvasTask, forbidd
     setStyleSheet
   } = useCytoscape();
 
+  const [cy, setCy] = useState<Core | null>(null);
   const [imageWidth, setImageWidth] = useState(0);
   const [imageHeight, setImageHeight] = useState(0);
   const [imageRenderedWidth, setImageRenderedWidth] = useState(0);
   const [imageRenderedHeight, setImageRenderedHeight] = useState(0);
   const [startRectanglePosition, setStartRectanglePosition] = useState<Position>({x: 0, y: 0});
   const [isInsidePolygon, setIsInsidePolygon] = useState(false);
+  const [isZoomed, setIsZoomed] = useState<boolean>(false);
   const wrapperElementRef = useRef<HTMLDivElement | null>(null);
 
-  let cy: Core | null = null;
   let canvas: HTMLCanvasElement | null = null;
   let ctx: CanvasRenderingContext2D | null = null;
   let bottomLayer: {
@@ -78,13 +80,13 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, canvasTask, forbidd
   }
 
   const setupCyLogic = (cyEvent: Core) => {
-    cy = cyEvent;
-    bottomLayer = relativePositionCanvas(cy);
+    setCy(cyEvent);
+    bottomLayer = relativePositionCanvas(cyEvent);
     canvas = bottomLayer.getCanvas();
     ctx = canvas.getContext('2d');
 
     const imageSize: Size = { width: imageWidth, height: imageHeight };
-    const canvasSize: Size = { width: cy.container()!.offsetWidth, height: cy.container()!.offsetHeight };
+    const canvasSize: Size = { width: cyEvent.container()!.offsetWidth, height: cyEvent.container()!.offsetHeight };
 
     addGeneralEventListeners(imageSize, canvasSize);
     setupCanvasAccordingToTask(canvasTask);
@@ -94,17 +96,18 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, canvasTask, forbidd
 
   const addGeneralEventListeners = (imageSize: Size, canvasSize: Size) => {
     if (!cy) { return; }
-    cy.off('mousedown mousemove mouseup zoom click drag add move position boxstart boxend');
+    cy.off('mousedown mousemove mouseup zoom click drag add position boxstart boxend');
 
-    cy.on('mousemove mouseup zoom resize add move position', () => preventPanOverImageBorders(imageSize, canvasSize));
+    cy.on('mousemove mouseup zoom resize add position', () => preventPanOverImageBorders(imageSize, canvasSize));
     cy.on('add move position', () => setNodesPosition(getNodesPositionInfo(imageSize)));
     cy.on('drag', 'node', handleDragNode);
+    cy.on('zoom', handleZoom);
   }
 
   const setupCanvasAccordingToTask = (canvasTask: CanvasTask) => {
     switch (canvasTask) {
       case 'selection': {
-        cy!.autoungrabify(true);
+        cy?.autoungrabify(true);
         return;
       }
     }
@@ -174,6 +177,11 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, canvasTask, forbidd
   const handleDragNode = (event: EventObject) => {
     const availablePosition: Position = setNodeAvailablePosition(event.target.position());
     event.target.position(availablePosition);
+  }
+
+  const handleZoom = () => {
+    const minZoom = calculateMinZoom();
+    setIsZoomed(cy!.zoom() !== minZoom);
   }
 
   const addNode = (clickPosition: Position) => {
@@ -282,6 +290,13 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, canvasTask, forbidd
       className='wrapper'
       ref={wrapperElementRef}
     >
+      {isZoomed && <div className="minimap-container">
+        <Minimap
+          cy={cy!}
+          imageSrc={imageSrc}
+          imageWidth={imageWidth}
+        />
+      </div>}
       <CytoscapeComponent
         className={'cytoscape-component'}
         elements={CytoscapeComponent.normalizeElements(graphData)}

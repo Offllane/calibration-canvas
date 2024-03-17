@@ -1,0 +1,20 @@
+.minimap-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.minimap-wrapper img {
+  max-width: 100px;
+  max-height: 100px;
+  object-fit: contain;
+}
+
+.selection {
+  position: absolute;
+  top: 0;
+  height: 10px;
+  width: 10px;
+  border: 1px solid red;
+}
