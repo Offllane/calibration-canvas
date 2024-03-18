@@ -24,10 +24,12 @@ export const polygonCanvasStylesheet: Array<Stylesheet> = [
   {
     selector: 'node',
     style: {
-      width: 10,
-      height: 10,
+      width: 20,
+      height: 20,
       shape: 'ellipse',
-      'background-color': 'blue'
+      'background-color': 'blue',
+      'border-width': '2',
+      'border-color': 'red' // рамка кружка
     }
   },
   {
@@ -43,8 +45,8 @@ export const selectionCanvasStylesheet: Array<Stylesheet> = [
   {
     selector: 'node',
     style: {
-      width: 4,
-      height: 4,
+      width: 1,
+      height: 1,
       shape: 'rectangle',
       'background-color': 'blue'
     }
@@ -52,7 +54,7 @@ export const selectionCanvasStylesheet: Array<Stylesheet> = [
   {
     selector: 'edge',
     style: {
-      width: 4,
+      width: 1,
       'line-color': 'blue',
     }
   },
