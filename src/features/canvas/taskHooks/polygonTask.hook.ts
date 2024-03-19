@@ -34,14 +34,12 @@ export function usePolygonTask(
 
     const isInsidePolygon: boolean = isClickedInsidePolygon(cy!.nodes(), event.position.x, event.position.y);
     setIsInsidePolygon(isInsidePolygon);
-    if (isInsidePolygon) { hidePanningCircle(); }
   }
 
   const handlePolygonTaskMouseUp = () => {
     setIsInsidePolygon(false);
     cy!.userPanningEnabled(true);
     cy!.boxSelectionEnabled(true);
-    showPanningCircle();
   }
 
   const handlePolygonTaskMouseMove = (event: EventObject) => {
@@ -143,20 +141,6 @@ export function usePolygonTask(
 
     ctx.closePath();
     ctx.fill();
-  }
-
-  const hidePanningCircle = () => {
-    cy.style().selector('core').style({
-      // @ts-ignore
-      activeBgOpacity: 0
-    });
-  }
-
-  const showPanningCircle = () => {
-    cy.style().selector('core').style({
-      // @ts-ignore
-      activeBgOpacity: .15
-    });
   }
 
   return {

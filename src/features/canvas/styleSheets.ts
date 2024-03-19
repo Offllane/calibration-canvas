@@ -1,7 +1,24 @@
 import {Stylesheet} from 'cytoscape';
 import pointer from '../../images/pointer.svg';
 
+const defaultStyleSheet: Array<Stylesheet> = [
+  {
+    selector: 'core',
+    // @ts-ignore
+    style: {
+      'active-bg-opacity': 0,
+    }
+  },
+  {
+    selector: 'edge:active',
+    style: {
+      "overlay-opacity": 0
+    }
+  }
+]
+
 export const pointsCanvasStylesheet: Array<Stylesheet> = [
+  ...defaultStyleSheet,
   {
     selector: "node",
     style: {
@@ -21,6 +38,7 @@ export const pointsCanvasStylesheet: Array<Stylesheet> = [
 ]
 
 export const polygonCanvasStylesheet: Array<Stylesheet> = [
+  ...defaultStyleSheet,
   {
     selector: 'node',
     style: {
@@ -42,6 +60,7 @@ export const polygonCanvasStylesheet: Array<Stylesheet> = [
 ]
 
 export const selectionCanvasStylesheet: Array<Stylesheet> = [
+  ...defaultStyleSheet,
   {
     selector: 'node',
     style: {
@@ -68,6 +87,12 @@ export const selectionCanvasStylesheet: Array<Stylesheet> = [
       'text-background-color': 'white',
       'text-background-opacity': 1,
       'text-background-padding': '4'
+    }
+  },
+  {
+    selector: 'node:active',
+    style: {
+      "overlay-opacity": 0
     }
   }
 ]
