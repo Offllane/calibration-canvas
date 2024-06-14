@@ -1,5 +1,6 @@
 import {Stylesheet} from 'cytoscape';
 import pointer from '../../images/pointer.svg';
+import {edgeWithLabelId} from './taskHooks/selectionTask.hook';
 
 const defaultStyleSheet: Array<Stylesheet> = [
   {
@@ -64,21 +65,21 @@ export const selectionCanvasStylesheet: Array<Stylesheet> = [
   {
     selector: 'node',
     style: {
-      width: 1,
-      height: 1,
-      shape: 'rectangle',
+      width: 20,
+      height: 20,
+      shape: 'ellipse',
       'background-color': 'blue'
     }
   },
   {
     selector: 'edge',
     style: {
-      width: 1,
+      width: 10,
       'line-color': 'blue',
     }
   },
   {
-    selector: '#edgefirst',
+    selector: `#${edgeWithLabelId}`,
     style: {
       label: 'data(label)',
       'font-size': 20,

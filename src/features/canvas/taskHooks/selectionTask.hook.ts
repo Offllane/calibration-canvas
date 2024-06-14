@@ -1,10 +1,12 @@
-import {Core, ElementDefinition, EventObject} from 'cytoscape';
+import {Core, ElementDefinition, EventObject, NodeSingular} from 'cytoscape';
 import {Position} from '../../../types/types';
 
 interface PointsTaskProps {
   cy: Core;
   maxDotsQuantity: number;
   imageWidth: number;
+  isInsidePolygon: boolean;
+  getNodeById: (nodeId: string | number) => NodeSingular | undefined;
   startRectanglePosition: Position;
   setNodeAvailablePosition: (position: Position) => Position;
   setStartRectanglePosition: (position: Position) => void;
@@ -15,6 +17,8 @@ export function useSelectionTask(
     cy,
     maxDotsQuantity,
     imageWidth,
+    isInsidePolygon,
+    getNodeById,
     setNodeAvailablePosition,
     startRectanglePosition,
     setStartRectanglePosition
@@ -48,19 +52,19 @@ export function useSelectionTask(
 
     const rectangleNodes: ElementDefinition[] = [
       {
-        data: { id: `dot0`},
+        data: { id: SelectionNodesId.TopLeft },
         position: { x: minX, y: minY }
       },
       {
-        data: { id: `dot1` },
+        data: { id: SelectionNodesId.TopRight },
         position: { x: maxX, y: minY },
       },
       {
-        data: { id: `dot2` },
+        data: { id: SelectionNodesId.BottomRight },
         position: { x: maxX, y: maxY },
       },
       {
-        data: { id: `dot3` },
+        data: { id: SelectionNodesId.BottomLeft },
         position: { x: minX, y: maxY },
       }
     ];
@@ -78,12 +82,7 @@ export function useSelectionTask(
       let id = `edge${index}`
       let label = ''
 
-      if (index === 0) {
-        const width = cy!.nodes()[1].position().x - cy!.nodes()[0].position().x;
-
-        id = `edgefirst`
-        label = `${Math.round(width)}px — ${Math.round(width/imageWidth * 100)}%`
-      }
+      if (index === 0) { id = edgeWithLabelId }
 
       return {
         data: {
@@ -96,10 +95,76 @@ export function useSelectionTask(
     });
 
     cy.add(edges);
+    updateLabelInfo();
+  }
+
+  const updateLabelInfo = () => {
+    cy.edges(`#${edgeWithLabelId}`)[0].css({
+      content: getLabelInfo()
+    });
+  }
+
+  const getLabelInfo = (): string => {
+    const width = cy!.nodes()[1].position().x - cy!.nodes()[0].position().x;
+
+    return `${Math.round(width)}px — ${Math.round(width/imageWidth * 100)}%`;
+  }
+
+  const resizeRectangle = (event: EventObject) => {
+    if (isInsidePolygon) { return; }
+
+    const nodeId: string = event.target.id();
+    const movedNode: NodeSingular = getNodeById(nodeId)!;
+
+    moveNeighborsNodesAccordingToMovedNode(nodeId, movedNode);
+    updateLabelInfo();
+  }
+
+  const moveNeighborsNodesAccordingToMovedNode = (nodeId: string, movedNode: NodeSingular): void => {
+    switch (nodeId) {
+      case SelectionNodesId.TopLeft: {
+        const topRightNode: NodeSingular = getNodeById(SelectionNodesId.TopRight)!;
+        const bottomLeftNode: NodeSingular = getNodeById(SelectionNodesId.BottomLeft)!;
+        topRightNode.position().y = movedNode.position().y;
+        bottomLeftNode.position().x = movedNode.position().x;
+        break;
+      }
+      case SelectionNodesId.TopRight: {
+        const topLeftNode: NodeSingular = getNodeById(SelectionNodesId.TopLeft)!;
+        const bottomRightNode: NodeSingular = getNodeById(SelectionNodesId.BottomRight)!;
+        topLeftNode.position().y = movedNode.position().y;
+        bottomRightNode.position().x = movedNode.position().x;
+        break;
+      }
+      case SelectionNodesId.BottomRight: {
+        const topRightNode: NodeSingular = getNodeById(SelectionNodesId.TopRight)!;
+        const bottomLeftNode: NodeSingular = getNodeById(SelectionNodesId.BottomLeft)!;
+        topRightNode.position().x = movedNode.position().x;
+        bottomLeftNode.position().y = movedNode.position().y;
+        break;
+      }
+      case SelectionNodesId.BottomLeft: {
+        const topLeftNode: NodeSingular = getNodeById(SelectionNodesId.TopLeft)!;
+        const bottomRightNode: NodeSingular = getNodeById(SelectionNodesId.BottomRight)!;
+        topLeftNode.position().x = movedNode.position().x;
+        bottomRightNode.position().y = movedNode.position().y;
+        break;
+      }
+    }
   }
 
   return {
     handleSelectionTaskBoxStart,
-    handleSelectionTaskBoxEnd
+    handleSelectionTaskBoxEnd,
+    resizeRectangle
   }
 }
+
+export enum SelectionNodesId {
+  TopLeft = 'dot0',
+  TopRight = 'dot1',
+  BottomRight = 'dot2',
+  BottomLeft = 'dot3'
+}
+
+export const edgeWithLabelId = 'edgeWithLabelId';

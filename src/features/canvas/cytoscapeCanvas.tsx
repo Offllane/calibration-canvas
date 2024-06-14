@@ -105,12 +105,7 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, canvasTask, forbidd
   }
 
   const setupCanvasAccordingToTask = (canvasTask: CanvasTask) => {
-    switch (canvasTask) {
-      case 'selection': {
-        cy?.autoungrabify(true);
-        return;
-      }
-    }
+    switch (canvasTask) {}
   }
 
   const setStylesheetAccordingToTask = (canvasTask: CanvasTask) => {
@@ -157,18 +152,33 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, canvasTask, forbidd
       case 'selection': {
         const {
           handleSelectionTaskBoxStart,
-          handleSelectionTaskBoxEnd
+          handleSelectionTaskBoxEnd,
+          resizeRectangle
         } = useSelectionTask({
           cy,
           maxDotsQuantity,
           imageWidth,
+          isInsidePolygon,
           startRectanglePosition,
+          getNodeById,
           setStartRectanglePosition,
           setNodeAvailablePosition
         })
 
+        const {
+          handlePolygonTaskMouseDown,
+          handlePolygonTaskMouseUp,
+          handlePolygonTaskMouseMove
+        } = usePolygonTask({cy, ctx, maxDotsQuantity, isInsidePolygon, addNode, setNodeAvailablePosition, setIsInsidePolygon});
+
+        cy.on('mousedown', handlePolygonTaskMouseDown);
+        cy.on('mouseup', handlePolygonTaskMouseUp);
+        cy.on('mousemove', handlePolygonTaskMouseMove);
+
         cy.on('boxstart', handleSelectionTaskBoxStart);
         cy.on('boxend', handleSelectionTaskBoxEnd);
+
+        cy.on('position', 'node', resizeRectangle)
         return;
       }
     }
@@ -197,6 +207,12 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, canvasTask, forbidd
     }
 
     cy.add(newNode);
+  }
+
+  const getNodeById = (nodeId: string | number): NodeSingular | undefined => {
+    if (!cy) { return; }
+
+    return cy?.nodes(`#${nodeId}`)[0];
   }
 
   const setNodeAvailablePosition = (position: Position): Position => {
