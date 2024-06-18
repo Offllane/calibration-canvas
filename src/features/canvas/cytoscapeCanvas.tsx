@@ -297,6 +297,10 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, canvasTask, forbidd
     return () => window.removeEventListener('resize', resizeCanvas);
   }, [imageWidth, imageHeight]);
 
+  useEffect(() => {
+    cy?.autoungrabify(isInsidePolygon);
+  }, [isInsidePolygon]);
+
   return (
     <div
       id='wrapper'
