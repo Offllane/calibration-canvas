@@ -35,6 +35,21 @@ export const pointsCanvasStylesheet: Array<Stylesheet> = [
       'text-background-color': 'white',
       'text-background-opacity': 1
     }
+  },
+  {
+    selector: 'edge',
+    style: {
+      width: 5,
+      'line-color': '#ADFF2F',
+    }
+  },
+  {
+    selector: 'edge:selected',
+    style: {
+      // cursor: 'pointer',
+      width: 10,
+      'line-color': '#FF0000',
+    }
   }
 ]
 

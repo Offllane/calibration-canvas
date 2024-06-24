@@ -130,7 +130,13 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, canvasTask, forbidd
 
     switch (canvasTask) {
       case 'points': {
-        const { handlePointsTaskClick } = usePointsTask({cy, maxDotsQuantity, addNode, setNodeAvailablePosition});
+        const { handlePointsTaskClick } = usePointsTask({
+          cy,
+          maxDotsQuantity,
+          addNode,
+          addEdge,
+          setNodeAvailablePosition
+        });
 
         cy.on('click', handlePointsTaskClick);
         return;
@@ -207,6 +213,25 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, canvasTask, forbidd
     }
 
     cy.add(newNode);
+  }
+
+  // TODO: better to replace base methods to separate custom hook
+  const addEdge = (sourceId: string, targetId: string) => {
+    if (!cy) {
+      console.error("Can't add edge because cy is undefined");
+      return;
+    }
+
+    const newEdgeId: string = `edge${sourceId}-${targetId}`;
+    const newEdge = {
+      data: {
+        id: newEdgeId,
+        source: sourceId,
+        target: targetId,
+      }
+    }
+
+    cy.add(newEdge);
   }
 
   const getNodeById = (nodeId: string | number): NodeSingular | undefined => {
