@@ -18,8 +18,11 @@ const defaultStyleSheet: Array<Stylesheet> = [
   }
 ]
 
+
 export const pointsCanvasStylesheet: Array<Stylesheet> = [
+  // @ts-ignore
   ...defaultStyleSheet,
+  // @ts-ignore
   {
     selector: "node",
     style: {
@@ -41,6 +44,11 @@ export const pointsCanvasStylesheet: Array<Stylesheet> = [
     style: {
       width: 5,
       'line-color': '#ADFF2F',
+      'curve-style': 'straight',
+      'source-distance-from-node': 5,
+      'target-distance-from-node': 5,
+      'source-endpoint': 'inside-to-node',
+      'target-endpoint': 'inside-to-node'
     }
   },
   {
@@ -63,7 +71,9 @@ export const polygonCanvasStylesheet: Array<Stylesheet> = [
       shape: 'ellipse',
       'background-color': 'blue',
       'border-width': '2',
-      'border-color': 'red' // рамка кружка
+      'border-color': 'red', // рамка кружка,
+      'source-distance-from-node': 100,
+      'target-distance-from-node': 100
     }
   },
   {
@@ -71,6 +81,8 @@ export const polygonCanvasStylesheet: Array<Stylesheet> = [
     style: {
       width: 1,
       'line-color': 'blue',
+      'source-distance-from-node': 100,
+      'target-distance-from-node': 100
     }
   }
 ]

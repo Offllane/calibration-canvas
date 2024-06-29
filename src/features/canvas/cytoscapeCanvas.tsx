@@ -98,7 +98,7 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, canvasTask, forbidd
     if (!cy) { return; }
     // we can't use remove all listeners, because in that case we need to add listener again for draw image and minimap.
     // in case of draw image we can set it here again, but we can't set event listener again for minimap component
-    cy.off('mousemove mouseup zoom add position move mousedown drag click nodeAdded tap boxstart boxend')
+    cy.off('mousemove mouseup mouseover mouseout zoom add position move mousedown drag click nodeAdded tap boxstart boxend')
 
     cy.on('mousemove mouseup zoom resize add position', () => preventPanOverImageBorders(imageSize, canvasSize));
     cy.on('add move position', () => setNodesPosition(getNodesPositionInfo(imageSize)));
@@ -141,6 +141,14 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, canvasTask, forbidd
         });
 
         cy.on('click', handlePointsTaskClick);
+
+        cy.on('mouseover', 'edge', (event: EventObject) => {
+          document.body.style.cursor = 'pointer';
+        })
+
+        cy.on('mouseout', 'edge', (event: EventObject) => {
+          document.body.style.cursor = 'unset';
+        })
         return;
       }
       case 'polygon': {
