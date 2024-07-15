@@ -56,6 +56,9 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, canvasTask, forbidd
 
   const drawImage = async (cy: Core, imageSrc: string) => {
     const image = await prepareImage(imageSrc);
+    bottomLayer = relativePositionCanvas(cy);
+    canvas = bottomLayer.getCanvas();
+    ctx = canvas.getContext('2d');
 
     cy.on("render cyCanvas.resize", () => {
       if (!ctx || !bottomLayer) { return; }
@@ -77,13 +80,12 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, canvasTask, forbidd
 
     setImageWidth(image.width);
     setImageHeight(image.height);
+
+    cy.trigger("cyCanvas.resize")
   }
 
   const setupCyLogic = (cyEvent: Core) => {
     setCy(cyEvent);
-    bottomLayer = relativePositionCanvas(cyEvent);
-    canvas = bottomLayer.getCanvas();
-    ctx = canvas.getContext('2d');
 
     const imageSize: Size = { width: imageWidth, height: imageHeight };
     const canvasSize: Size = { width: cyEvent.container()!.offsetWidth, height: cyEvent.container()!.offsetHeight };

@@ -1,9 +1,17 @@
 import {Core} from 'cytoscape';
 
+const RELATIVE_POSITION_CANVAS_ID = 'relativePositionCanvasId'
+
 export function relativePositionCanvas(cy: Core, args?: any) {
   const container = cy.container()!;
 
   const canvas = document.createElement("canvas");
+  canvas.id = RELATIVE_POSITION_CANVAS_ID;
+  const alreadyExistingRelativePositionCanvas: Node | null = document.getElementById(RELATIVE_POSITION_CANVAS_ID);
+
+  if (alreadyExistingRelativePositionCanvas) {
+    container.removeChild(alreadyExistingRelativePositionCanvas);
+  }
 
   container.appendChild(canvas);
 
