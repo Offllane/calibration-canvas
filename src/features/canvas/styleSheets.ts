@@ -125,3 +125,32 @@ export const selectionCanvasStylesheet: Array<Stylesheet> = [
   }
 ]
 
+export const lineCanvasStylesheet: Array<Stylesheet> = [
+  ...defaultStyleSheet,
+  {
+    selector: 'node',
+    style: {
+      width: 10,
+      height: 10,
+      shape: 'ellipse',
+      'background-color': 'yellow',
+      'source-distance-from-node': 100,
+      'target-distance-from-node': 100
+    }
+  },
+  {
+    selector: 'edge',
+    style: {
+      width: 2,
+      'line-color': 'yellow',
+      'source-distance-from-node': 100,
+      'target-distance-from-node': 100
+    }
+  },
+  {
+    selector: 'edge',
+    style: {
+      "background-color": 'yellow',
+    }
+  }
+]
