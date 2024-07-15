@@ -13,4 +13,4 @@ export type NodesPositionInfo = {
   percentagePosition: Array<Position>
 }
 
-export type CanvasTask = 'points' | 'polygon' | 'selection';
+export type CanvasTask = 'points' | 'polygon' | 'selection' | 'line';
