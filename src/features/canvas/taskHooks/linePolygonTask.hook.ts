@@ -106,6 +106,14 @@ export function useLinePolygonTask(
         },
         position: {x: 0, y: height/2},
         selectable: false,
+        style: {
+          width: 2,
+          height: 2,
+          shape: 'ellipse',
+          'background-color': 'yellow',
+          'source-distance-from-node': 100,
+          'target-distance-from-node': 100
+        }
       },
       {
         data: {
@@ -114,6 +122,14 @@ export function useLinePolygonTask(
         },
         position: {x: width, y: height/2},
         selectable: false,
+        style: {
+          width: 2,
+          height: 2,
+          shape: 'ellipse',
+          'background-color': 'yellow',
+          'source-distance-from-node': 100,
+          'target-distance-from-node': 100
+        }
       },
       {
         data: {

@@ -23,6 +23,7 @@ interface CytoscapeCanvasProps {
   canvasTask: CanvasTask;
   forbiddenAreaInPercent?: number;
   setNodesPosition: (data: NodesPositionInfo) => void;
+  maxLineQuantity?: number;
 }
 
 export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, canvasTask, forbiddenAreaInPercent = 0, setNodesPosition }: CytoscapeCanvasProps) {

@@ -13,6 +13,7 @@ export function LinePolygonPage() {
         maxDotsQuantity={6}
         canvasTask='line'
         setNodesPosition={setNodesPosition}
+        maxLineQuantity={1}
       />
       <aside>
         <button onClick={setImageToCanvas}>
