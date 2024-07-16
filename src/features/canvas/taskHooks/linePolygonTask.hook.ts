@@ -9,7 +9,14 @@ interface LinePolygonTaskProps {
   isInsidePolygon: boolean;
   setNodeAvailablePosition: (position: Position) => Position;
   addNode: (position: Position) => void;
-  setIsInsidePolygon: (data: boolean) => void
+  setIsInsidePolygon: (data: boolean) => void;
+  isInsideLine: boolean;
+  setIsInsideLine: (data: boolean) => void;
+}
+
+type Coordinates = {
+  x: number;
+  y: number
 }
 
 export function useLinePolygonTask(
@@ -20,10 +27,19 @@ export function useLinePolygonTask(
     isInsidePolygon,
     setNodeAvailablePosition,
     addNode,
-    setIsInsidePolygon
+    setIsInsidePolygon,
+    isInsideLine,
+    setIsInsideLine
   }: LinePolygonTaskProps) {
 
-  const { handlePolygonTaskClick, handlePolygonTaskMouseUp, handlePolygonTaskMouseMove, handlePolygonTaskMouseDown } = usePolygonTask({
+  const {
+    handlePolygonTaskClick,
+    handlePolygonTaskMouseUp,
+    handlePolygonTaskMouseMove,
+    handlePolygonTaskMouseDown,
+    isNewNodePositionAvailable,
+    getNewNodePositionOnMoveEvent,
+  } = usePolygonTask({
     cy,
     ctx,
     maxDotsQuantity,
@@ -33,6 +49,34 @@ export function useLinePolygonTask(
     setIsInsidePolygon,
     isLine: true
   });
+
+  const handleLinePolygonTaskMouseDown = (event: EventObject) => {
+    const coordinates = getCoordinates();
+    const isInLine = isPointOnSegment(coordinates!, event.position.x, event.position.y);
+    setIsInsideLine(isInLine);
+
+    if (isInLine) { return; }
+
+    handlePolygonTaskMouseDown(event);
+  }
+
+  const handleLinePolygonTaskMouseMove = (event: EventObject) => {
+    if (!isInsideLine) {
+      return handlePolygonTaskMouseMove(event);
+    }
+
+    moveLine(event);
+  }
+
+  const handleLinePolygonTaskMouseUp = () => {
+    if (!isInsideLine) {
+      return handlePolygonTaskMouseUp();
+    }
+
+    setIsInsideLine(false);
+    cy!.userPanningEnabled(true);
+    cy!.boxSelectionEnabled(true);
+  }
 
   const fillLineTaskPolygonBackground = () => {
     if (!cy || !ctx) { return; }
@@ -62,7 +106,6 @@ export function useLinePolygonTask(
         },
         position: {x: 0, y: height/2},
         selectable: false,
-        locked: true,
       },
       {
         data: {
@@ -71,7 +114,6 @@ export function useLinePolygonTask(
         },
         position: {x: width, y: height/2},
         selectable: false,
-        locked: true,
       },
       {
         data: {
@@ -86,11 +128,76 @@ export function useLinePolygonTask(
     cy.add(nodes)
   };
 
+  const moveLine = (moveEvent: EventObject) => {
+    if (!cy) { return; }
+    if (!isPolygonNodesNewPositionsAvailable(moveEvent)) { return; }
+
+    cy.userPanningEnabled(false);
+    cy.boxSelectionEnabled(false);
+
+    cy.nodes().forEach((node: NodeSingular) => {
+      if (!node.id().includes('line')) {
+        return;
+      }
+
+      const newPosition: Position = getNewNodePositionOnMoveEvent(moveEvent, node.position());
+      node.position(newPosition);
+    });
+  }
+
+  const isPointOnSegment = (coordinates: Coordinates[], x: number, y: number) => {
+    if (coordinates.length !== 2) { return false; }
+
+    // Вычисляем длину отрезка
+    const segmentLength = Math.sqrt((coordinates[1].x - coordinates[0].x + 0.05) ** 2 + (coordinates[1].y - coordinates[0].y + 0.05) ** 2);
+
+    // Вычисляем расстояние от точки до начальной и конечной точек отрезка
+    const distanceToStart = Math.sqrt((x - coordinates[0].x) ** 2 + (y - coordinates[0].y) ** 2);
+    const distanceToEnd = Math.sqrt((x - coordinates[1].x) ** 2 + (y - coordinates[1].y) ** 2);
+
+    // Проверяем, находится ли точка на отрезке
+    return distanceToStart + distanceToEnd <= segmentLength + 0.0001;
+  }
+
+  const getCoordinates = () => {
+    if (!cy) { return; }
+
+    return cy.nodes().reduce((acc: Coordinates[], node) => {
+      if (!node.id().includes('line')) {
+        return acc;
+      }
+
+      acc.push({
+        x: node.position().x,
+        y: node.position().y,
+      });
+
+      return acc;
+    }, [])
+  }
+
+  const isPolygonNodesNewPositionsAvailable = (moveEvent: EventObject): boolean => {
+    if (!cy) { return false; }
+
+    // check is each polygon new Position are available
+    return cy.nodes().reduce((acc, node) => {
+      if (!node.id().includes('line')) {
+        return acc;
+      }
+
+      const newPosition: Position = getNewNodePositionOnMoveEvent(moveEvent, node.position());
+
+      if (!isNewNodePositionAvailable(newPosition)) { return false; }
+
+      return acc;
+    }, true);
+  }
+
   return {
     handlePolygonTaskClick,
-    handlePolygonTaskMouseDown,
-    handlePolygonTaskMouseUp,
-    handlePolygonTaskMouseMove,
+    handleLinePolygonTaskMouseDown,
+    handleLinePolygonTaskMouseUp,
+    handleLinePolygonTaskMouseMove,
     fillLineTaskPolygonBackground,
     addLine
   }

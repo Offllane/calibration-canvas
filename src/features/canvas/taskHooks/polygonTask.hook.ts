@@ -194,6 +194,8 @@ export function usePolygonTask(
     handlePolygonTaskMouseDown,
     handlePolygonTaskMouseUp,
     handlePolygonTaskMouseMove,
-    fillPolygonBackground
+    fillPolygonBackground,
+    isNewNodePositionAvailable,
+    getNewNodePositionOnMoveEvent
   }
 }

@@ -41,6 +41,7 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, canvasTask, forbidd
   const [startRectanglePosition, setStartRectanglePosition] = useState<Position>({x: 0, y: 0});
   const [isInsidePolygon, setIsInsidePolygon] = useState(false);
   const [isZoomed, setIsZoomed] = useState<boolean>(false);
+  const [isInsideLine, setIsInsideLine] = useState<boolean>(false);
   const wrapperElementRef = useRef<HTMLDivElement | null>(null);
 
   let canvas: HTMLCanvasElement | null = null;
@@ -85,7 +86,15 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, canvasTask, forbidd
 
       if (canvasTask === 'line') {
         const { fillLineTaskPolygonBackground } = useLinePolygonTask({
-          cy, ctx, maxDotsQuantity, isInsidePolygon, addNode, setNodeAvailablePosition, setIsInsidePolygon
+          cy,
+          ctx,
+          maxDotsQuantity,
+          isInsidePolygon,
+          addNode,
+          setNodeAvailablePosition,
+          setIsInsidePolygon,
+          isInsideLine,
+          setIsInsideLine
         });
         fillLineTaskPolygonBackground();
       }
@@ -98,7 +107,15 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, canvasTask, forbidd
 
     if (canvasTask === 'line') {
       const { addLine } = useLinePolygonTask({
-        cy, ctx, maxDotsQuantity, isInsidePolygon, addNode, setNodeAvailablePosition, setIsInsidePolygon
+        cy,
+        ctx,
+        maxDotsQuantity,
+        isInsidePolygon,
+        addNode,
+        setNodeAvailablePosition,
+        setIsInsidePolygon,
+        isInsideLine,
+        setIsInsideLine
       });
 
       addLine({width: image.width, height: image.height});
@@ -227,15 +244,25 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, canvasTask, forbidd
       case 'line': {
         const {
           handlePolygonTaskClick,
-          handlePolygonTaskMouseDown,
-          handlePolygonTaskMouseUp,
-          handlePolygonTaskMouseMove
-        } = useLinePolygonTask({cy, ctx, maxDotsQuantity, isInsidePolygon, addNode, setNodeAvailablePosition, setIsInsidePolygon});
+          handleLinePolygonTaskMouseDown,
+          handleLinePolygonTaskMouseUp,
+          handleLinePolygonTaskMouseMove
+        } = useLinePolygonTask({
+          cy,
+          ctx,
+          maxDotsQuantity,
+          isInsidePolygon,
+          addNode,
+          setNodeAvailablePosition,
+          setIsInsidePolygon,
+          isInsideLine,
+          setIsInsideLine
+        });
 
         cy.on('click', handlePolygonTaskClick);
-        cy.on('mousedown', handlePolygonTaskMouseDown);
-        cy.on('mouseup', handlePolygonTaskMouseUp);
-        cy.on('mousemove', handlePolygonTaskMouseMove);
+        cy.on('mousedown', handleLinePolygonTaskMouseDown);
+        cy.on('mouseup', handleLinePolygonTaskMouseUp);
+        cy.on('mousemove', handleLinePolygonTaskMouseMove);
         return;
       }
     }
