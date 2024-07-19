@@ -1,5 +1,6 @@
 import {Core, ElementDefinition, EventObject, NodeCollection, NodeSingular} from 'cytoscape';
 import {Position} from '../../../types/types';
+import {isLineNodes} from "../../../shared/hooks/line.hook";
 
 interface PolygonTaskProps {
   cy: Core;
@@ -10,6 +11,7 @@ interface PolygonTaskProps {
   addNode: (position: Position) => void;
   setIsInsidePolygon: (data: boolean) => void;
   isLine?: boolean;
+  linesQuantity?: number;
 }
 
 export function usePolygonTask(
@@ -21,7 +23,8 @@ export function usePolygonTask(
     setNodeAvailablePosition,
     addNode,
     setIsInsidePolygon,
-    isLine
+    isLine,
+    linesQuantity
   }: PolygonTaskProps) {
   const handlePolygonTaskClick = (event: EventObject) => {
     if (isNodesCountMax()) { return; }
@@ -58,7 +61,7 @@ export function usePolygonTask(
     cy.boxSelectionEnabled(false);
 
     cy.nodes().forEach((node: NodeSingular) => {
-      if (node.id().includes('line')) {
+      if (isLineNodes(node.id())) {
         return;
       }
 
@@ -72,11 +75,11 @@ export function usePolygonTask(
     if (!isNodesCountMax()) { return; }
 
     const edges: ElementDefinition[] = cy.nodes().reduce((acc: ElementDefinition[], node, index) => {
-      if (isLine && node.id().includes('line')) {
+      if (isLineNodes(node.id())) {
         return acc;
       }
 
-      const targetIndex = index + 1 === cy!.nodes().length ? 0 + (isLine ? 2 : 0) : index + 1;
+      const targetIndex = index + 1 === cy!.nodes().length ? 0 + (isLine ? 3 : 0) : index + 1;
       let id = `edge${index}`
 
       acc.push({
@@ -94,11 +97,12 @@ export function usePolygonTask(
   }
 
   const isClickedInsidePolygon = (nodes: NodeCollection, x: number, y: number): boolean => {
-    let npol = nodes.length;
+    const linesNode = isLine ? 3 * linesQuantity! : 0;
+    let npol = nodes.length - linesNode;
     let j = npol - 1;
     let isInsidePolygon = false;
     const xp = nodes.reduce((acc: number[], node) => {
-      if (node.id().includes('line')) {
+      if (isLineNodes(node.id())) {
         return acc;
       }
 
@@ -108,7 +112,7 @@ export function usePolygonTask(
     }, []);
 
     const yp = nodes.reduce((acc: number[], node) => {
-      if (node.id().includes('line')) {
+      if (isLineNodes(node.id())) {
         return acc;
       }
 
@@ -134,7 +138,7 @@ export function usePolygonTask(
 
     // check is each polygon new Position are available
     return cy.nodes().reduce((acc, node) => {
-      if (node.id().includes('line')) {
+      if (isLineNodes(node.id())) {
         return acc;
       }
 
@@ -183,7 +187,7 @@ export function usePolygonTask(
     let maxDotsCount = maxDotsQuantity;
 
     if (isLine) {
-      maxDotsCount += 2;
+      maxDotsCount += 3;
     }
 
     return cy.nodes().length === maxDotsCount;
@@ -196,6 +200,7 @@ export function usePolygonTask(
     handlePolygonTaskMouseMove,
     fillPolygonBackground,
     isNewNodePositionAvailable,
-    getNewNodePositionOnMoveEvent
+    getNewNodePositionOnMoveEvent,
+    isNodesCountMax
   }
 }

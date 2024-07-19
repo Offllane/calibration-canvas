@@ -134,23 +134,13 @@ export const lineCanvasStylesheet: Array<Stylesheet> = [
       height: 10,
       shape: 'ellipse',
       'background-color': 'yellow',
-      'source-distance-from-node': 100,
-      'target-distance-from-node': 100
     }
   },
   {
     selector: 'edge',
     style: {
-      width: 2,
-      'line-color': 'yellow',
-      'source-distance-from-node': 100,
-      'target-distance-from-node': 100
+      width: 5,
+      'line-color': '#ADFF2F',
     }
   },
-  {
-    selector: 'edge',
-    style: {
-      "background-color": 'yellow',
-    }
-  }
 ]
