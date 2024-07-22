@@ -27,14 +27,16 @@ export const pointsCanvasStylesheet: Array<Stylesheet> = [
     selector: "node",
     style: {
       shape: 'rectangle',
-      width: 110,
-      height: 110,
+      width: 65,
+      height: 65,
       label: "data(label)",
       'background-image': pointer,
+      'background-width': '100%',
+      'background-height': '100%',
       'background-opacity': 0,
-      'font-size': 20,
+      'font-size': 14,
       'font-weight': 600,
-      'text-margin-y': 26,
+      'text-margin-y': 15,
       'text-background-color': 'white',
       'text-background-opacity': 1
     }
@@ -42,7 +44,7 @@ export const pointsCanvasStylesheet: Array<Stylesheet> = [
   {
     selector: 'edge',
     style: {
-      width: 5,
+      width: 3,
       'line-color': '#ADFF2F',
       'curve-style': 'straight',
       'source-distance-from-node': 5,
@@ -54,7 +56,6 @@ export const pointsCanvasStylesheet: Array<Stylesheet> = [
   {
     selector: 'edge:selected',
     style: {
-      // cursor: 'pointer',
       width: 10,
       'line-color': '#FF0000',
     }
@@ -66,11 +67,11 @@ export const polygonCanvasStylesheet: Array<Stylesheet> = [
   {
     selector: 'node',
     style: {
-      width: 20,
-      height: 20,
+      width: 10,
+      height: 10,
       shape: 'ellipse',
       'background-color': 'blue',
-      'border-width': '2',
+      'border-width': '1',
       'border-color': 'red', // рамка кружка,
       'source-distance-from-node': 100,
       'target-distance-from-node': 100
@@ -92,8 +93,8 @@ export const selectionCanvasStylesheet: Array<Stylesheet> = [
   {
     selector: 'node',
     style: {
-      width: 20,
-      height: 20,
+      width: 10,
+      height: 10,
       shape: 'ellipse',
       'background-color': 'blue'
     }
@@ -101,14 +102,9 @@ export const selectionCanvasStylesheet: Array<Stylesheet> = [
   {
     selector: 'edge',
     style: {
-      width: 10,
-      'line-color': 'blue',
-    }
-  },
-  {
-    selector: `#${edgeWithLabelId}`,
-    style: {
       label: 'data(label)',
+      width: 1,
+      'line-color': 'blue',
       'font-size': 20,
       'font-weight': 600,
       'text-margin-y': -26,

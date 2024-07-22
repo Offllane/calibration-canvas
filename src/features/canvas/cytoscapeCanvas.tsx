@@ -4,7 +4,7 @@ import {useCytoscape} from './cytoscapeInit.hook';
 import {relativePositionCanvas} from './relativePositionCanvas';
 import {useEffect, useRef, useState} from 'react';
 import {Core, ElementDefinition, EventObject, NodeSingular} from 'cytoscape';
-import {CanvasTask, NodesPositionInfo, Position, Size} from '../../types/types';
+import {CanvasTask, ElementsSizeStyles, SizeStyles, NodesPositionInfo, Position, Size} from '../../types/types';
 import {pointsCanvasStylesheet, polygonCanvasStylesheet, selectionCanvasStylesheet} from './styleSheets';
 import {usePolygonTask} from './taskHooks/polygonTask.hook';
 import {usePointsTask} from './taskHooks/pointsTask.hook';
@@ -129,6 +129,47 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, canvasTask, forbidd
     }
   }
 
+  const getElementDefaultSizeStylesAccordingToTask = (canvasTask: CanvasTask): ElementsSizeStyles => {
+    switch (canvasTask) {
+      case 'points': {
+        return getNodeAndEdgeDefaultSizeStyles(pointsCanvasStylesheet);
+      }
+      case 'polygon': {
+        return getNodeAndEdgeDefaultSizeStyles(polygonCanvasStylesheet);
+      }
+      case 'selection': {
+        return getNodeAndEdgeDefaultSizeStyles(selectionCanvasStylesheet);
+      }
+    }
+  }
+
+  const getNodeAndEdgeDefaultSizeStyles = (styleSheet: Array<any>) => {
+    const nodeDefaultSizeStyles = getFixedStylesBySelector(styleSheet, 'node');
+    const edgeDefaultSizeStyles = getFixedStylesBySelector(styleSheet, 'edge');
+
+    return {
+      nodeFixedSizeStyles: nodeDefaultSizeStyles,
+      edgeFixedSizeStyles: edgeDefaultSizeStyles
+    }
+  }
+
+  const getFixedStylesBySelector = (styleSheet: Array<any>, selector: 'node' | 'edge'): SizeStyles => {
+    const fixedSizePropertiesList = [
+      'width', 'height', 'font-size', 'text-margin-y', 'source-distance-from-node',
+      'target-distance-from-node', 'border-width', 'text-background-padding'
+    ];
+
+    let fixedSizeStyles: SizeStyles = {};
+    const stylesFromSelector = styleSheet.find(element => element.selector === selector).style;
+    for (let style in stylesFromSelector) {
+      if (fixedSizePropertiesList.includes(style)) {
+        fixedSizeStyles[style] = +stylesFromSelector[style];
+      }
+    }
+
+    return fixedSizeStyles;
+  }
+
   const addEventsAccordingToTask = (canvasTask: CanvasTask) => {
     if (!cy) { return; }
 
@@ -210,6 +251,27 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, canvasTask, forbidd
   const handleZoom = () => {
     const minZoom = calculateMinZoom();
     setIsZoomed(cy!.zoom() !== minZoom);
+
+    cy?.nodes().css(calculateElementsSizeStylesForCurrentZoom('node'));
+    cy?.edges().css(calculateElementsSizeStylesForCurrentZoom('edge'));
+  }
+
+  const calculateElementsSizeStylesForCurrentZoom = (selector: 'node' | 'edge') => {
+    let defaultNodeSizeStyles: SizeStyles = {};
+    let zoomedElementSizeStyles: SizeStyles = {};
+
+    if (selector === 'node') {
+      defaultNodeSizeStyles = getElementDefaultSizeStylesAccordingToTask(canvasTask).nodeFixedSizeStyles;
+    }
+    if (selector === 'edge') {
+      defaultNodeSizeStyles = getElementDefaultSizeStylesAccordingToTask(canvasTask).edgeFixedSizeStyles;
+    }
+
+    for (let style in defaultNodeSizeStyles) {
+      zoomedElementSizeStyles[style] =  defaultNodeSizeStyles[style]! / cy!.zoom();
+    }
+
+    return zoomedElementSizeStyles;
   }
 
   const addNode = (clickPosition: Position) => {
@@ -319,6 +381,38 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, canvasTask, forbidd
     setImageRenderedHeight(imageHeight * minZoom);
   }
 
+  const calculateFixedSize = (fixedSize: number, imageWidth: number, imageRenderedWidth: number): number => {
+    return imageWidth * fixedSize / imageRenderedWidth;
+  }
+
+  const calculateFixedStyles = (defaultSizeStyles: SizeStyles): SizeStyles => {
+    let fixedSizeStyles: SizeStyles = {};
+    for (let style in defaultSizeStyles) {
+      fixedSizeStyles[style] = calculateFixedSize(defaultSizeStyles[style]!, imageWidth, imageRenderedWidth);
+    }
+
+    return fixedSizeStyles;
+  }
+
+  const setFixedCoefficient = (fixedSizeStyles: SizeStyles, selector: 'node' | 'edge') => {
+    const minZoom = calculateMinZoom();
+    let fixedCoefficientValues: SizeStyles = {};
+    for (let style in fixedSizeStyles) {
+      fixedCoefficientValues[style] = fixedSizeStyles[style]! * minZoom;
+    }
+  }
+
+  const setStylesAccordingToImageSize = () => {
+    const elementsDefaultSizes: ElementsSizeStyles = getElementDefaultSizeStylesAccordingToTask(canvasTask);
+    const nodeFixedSizeStyles: SizeStyles = calculateFixedStyles(elementsDefaultSizes.nodeFixedSizeStyles);
+    const edgeFixedSizeStyles: SizeStyles = calculateFixedStyles(elementsDefaultSizes.edgeFixedSizeStyles);
+
+    setFixedCoefficient(nodeFixedSizeStyles, 'node');
+
+    cy!.style().selector('node').style(nodeFixedSizeStyles);
+    cy!.style().selector('edge').style(edgeFixedSizeStyles);
+  }
+
   useEffect(() => {
     if (!imageSrc || !cy) { return; }
 
@@ -333,6 +427,13 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, canvasTask, forbidd
 
     return () => window.removeEventListener('resize', resizeCanvas);
   }, [imageWidth, imageHeight]);
+
+  useEffect(() => {
+    if (!cy) { return; }
+    if (!imageWidth || !imageRenderedWidth) { return; }
+
+    setStylesAccordingToImageSize();
+  }, [imageWidth, imageRenderedWidth])
 
   useEffect(() => {
     cy?.autoungrabify(isInsidePolygon);

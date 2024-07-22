@@ -14,3 +14,19 @@ export type NodesPositionInfo = {
 }
 
 export type CanvasTask = 'points' | 'polygon' | 'selection';
+
+export type ElementsSizeStyles = {
+  nodeFixedSizeStyles: SizeStyles;
+  edgeFixedSizeStyles: SizeStyles;
+}
+
+export type SizeStyles = {
+  [key: string]: number | undefined;
+  width?: number;
+  height?: number;
+  'font-size'?: number;
+  'text-margin-y'?: number;
+  'source-distance-from-node'?: number;
+  'target-distance-from-node'?: number;
+  'border-width'?: number;
+}
