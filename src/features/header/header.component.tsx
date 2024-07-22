@@ -23,6 +23,12 @@ export function HeaderComponent() {
         >
           Selection
         </Link>
+        <Link
+          to='/line-polygon'
+          className='menu__link'
+        >
+          Line polygon
+        </Link>
       </nav>
     </header>
   );

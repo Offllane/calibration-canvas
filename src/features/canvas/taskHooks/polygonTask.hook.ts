@@ -1,5 +1,6 @@
 import {Core, ElementDefinition, EventObject, NodeCollection, NodeSingular} from 'cytoscape';
 import {Position} from '../../../types/types';
+import {isLineNodes} from "../../../shared/hooks/line.hook";
 
 interface PolygonTaskProps {
   cy: Core;
@@ -8,7 +9,9 @@ interface PolygonTaskProps {
   isInsidePolygon: boolean;
   setNodeAvailablePosition: (position: Position) => Position;
   addNode: (position: Position) => void;
-  setIsInsidePolygon: (data: boolean) => void
+  setIsInsidePolygon: (data: boolean) => void;
+  isLine?: boolean;
+  linesQuantity?: number;
 }
 
 export function usePolygonTask(
@@ -19,10 +22,12 @@ export function usePolygonTask(
     isInsidePolygon,
     setNodeAvailablePosition,
     addNode,
-    setIsInsidePolygon
+    setIsInsidePolygon,
+    isLine,
+    linesQuantity
   }: PolygonTaskProps) {
   const handlePolygonTaskClick = (event: EventObject) => {
-    if (cy!.nodes().length === maxDotsQuantity) { return; }
+    if (isNodesCountMax()) { return; }
 
     const clickPosition: Position = setNodeAvailablePosition(event.position);
     addNode(clickPosition);
@@ -30,7 +35,7 @@ export function usePolygonTask(
   }
 
   const handlePolygonTaskMouseDown = (event: EventObject) => {
-    if (cy!.nodes().length !== maxDotsQuantity) { return; }
+    if (!isNodesCountMax()) { return; }
 
     const isInsidePolygon: boolean = isClickedInsidePolygon(cy!.nodes(), event.position.x, event.position.y);
     setIsInsidePolygon(isInsidePolygon);
@@ -56,6 +61,10 @@ export function usePolygonTask(
     cy.boxSelectionEnabled(false);
 
     cy.nodes().forEach((node: NodeSingular) => {
+      if (isLineNodes(node.id())) {
+        return;
+      }
+
       const newPosition: Position = getNewNodePositionOnMoveEvent(moveEvent, node.position());
       node.position(newPosition);
     });
@@ -63,30 +72,55 @@ export function usePolygonTask(
 
   const drawPolygon = () => {
     if (!cy) { return; }
-    if (cy.nodes().length !== maxDotsQuantity) { return; }
+    if (!isNodesCountMax()) { return; }
 
-    const edges: ElementDefinition[] = cy.nodes().map((_, index) => {
-      const targetIndex: number = index + 1 === cy!.nodes().length ? 0 : index + 1;
+    const edges: ElementDefinition[] = cy.nodes().reduce((acc: ElementDefinition[], node, index) => {
+      if (isLineNodes(node.id())) {
+        return acc;
+      }
+
+      const targetIndex = index + 1 === cy!.nodes().length ? 0 + (isLine ? 3 : 0) : index + 1;
       let id = `edge${index}`
 
-      return {
+      acc.push({
         data: {
           id,
           source: `dot${index}`,
           target: `dot${targetIndex}`,
         }
-      }
-    });
+      });
+
+      return acc;
+    }, []);
 
     cy.add(edges);
   }
 
   const isClickedInsidePolygon = (nodes: NodeCollection, x: number, y: number): boolean => {
-    let npol = nodes.length;
+    const linesNode = isLine ? 3 * linesQuantity! : 0;
+    let npol = nodes.length - linesNode;
     let j = npol - 1;
     let isInsidePolygon = false;
-    const xp = nodes.map((node) => node.position().x)
-    const yp = nodes.map((node) => node.position().y)
+    const xp = nodes.reduce((acc: number[], node) => {
+      if (isLineNodes(node.id())) {
+        return acc;
+      }
+
+      acc.push(node.position().x);
+
+      return acc;
+    }, []);
+
+    const yp = nodes.reduce((acc: number[], node) => {
+      if (isLineNodes(node.id())) {
+        return acc;
+      }
+
+      acc.push(node.position().y);
+
+      return acc;
+    }, []);
+
     for (let i = 0; i < npol; i++){
       const isClickInNode = Math.abs(Math.pow(x - xp[j], 2) - Math.pow(y - yp[j], 2)) <= 25;
       if (xp[j] === x && yp[j] === y || isClickInNode) {  return false; }
@@ -104,6 +138,10 @@ export function usePolygonTask(
 
     // check is each polygon new Position are available
     return cy.nodes().reduce((acc, node) => {
+      if (isLineNodes(node.id())) {
+        return acc;
+      }
+
       const newPosition: Position = getNewNodePositionOnMoveEvent(moveEvent, node.position());
 
       if (!isNewNodePositionAvailable(newPosition)) { return false; }
@@ -130,7 +168,7 @@ export function usePolygonTask(
 
   const fillPolygonBackground = () => {
     if (!cy || !ctx) { return; }
-    if (cy.nodes().length !== maxDotsQuantity) { return; }
+    if (!isNodesCountMax()) { return; }
 
     ctx.fillStyle = 'rgba(0, 0, 255, 0.1)';
     ctx.beginPath();
@@ -143,11 +181,26 @@ export function usePolygonTask(
     ctx.fill();
   }
 
+  const isNodesCountMax = (): boolean => {
+    if (!cy) { return false; }
+
+    let maxDotsCount = maxDotsQuantity;
+
+    if (isLine) {
+      maxDotsCount += 3;
+    }
+
+    return cy.nodes().length === maxDotsCount;
+  }
+
   return {
     handlePolygonTaskClick,
     handlePolygonTaskMouseDown,
     handlePolygonTaskMouseUp,
     handlePolygonTaskMouseMove,
-    fillPolygonBackground
+    fillPolygonBackground,
+    isNewNodePositionAvailable,
+    getNewNodePositionOnMoveEvent,
+    isNodesCountMax
   }
 }

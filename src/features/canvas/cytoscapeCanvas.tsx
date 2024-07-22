@@ -5,11 +5,12 @@ import {relativePositionCanvas} from './relativePositionCanvas';
 import {useEffect, useRef, useState} from 'react';
 import {Core, ElementDefinition, EventObject, NodeSingular} from 'cytoscape';
 import {CanvasTask, ElementsSizeStyles, SizeStyles, NodesPositionInfo, Position, Size} from '../../types/types';
-import {pointsCanvasStylesheet, polygonCanvasStylesheet, selectionCanvasStylesheet} from './styleSheets';
+import {pointsCanvasStylesheet, polygonCanvasStylesheet, selectionCanvasStylesheet, lineCanvasStylesheet} from './styleSheets';
 import {usePolygonTask} from './taskHooks/polygonTask.hook';
 import {usePointsTask} from './taskHooks/pointsTask.hook';
 import {useSelectionTask} from './taskHooks/selectionTask.hook';
 import {Minimap} from '../minimap/minimap';
+import {useLinePolygonTask} from "./taskHooks/linePolygonTask.hook";
 
 interface CytoscapeCanvasProps {
   imageSrc: string | null;
@@ -17,6 +18,7 @@ interface CytoscapeCanvasProps {
   canvasTask: CanvasTask;
   forbiddenAreaInPercent?: number;
   setNodesPosition: (data: NodesPositionInfo) => void;
+  maxLineQuantity?: number;
 }
 
 export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, canvasTask, forbiddenAreaInPercent = 0, setNodesPosition }: CytoscapeCanvasProps) {
@@ -35,6 +37,11 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, canvasTask, forbidd
   const [startRectanglePosition, setStartRectanglePosition] = useState<Position>({x: 0, y: 0});
   const [isInsidePolygon, setIsInsidePolygon] = useState(false);
   const [isZoomed, setIsZoomed] = useState<boolean>(false);
+  const [isInsideLine, setIsInsideLine] = useState<boolean>(false);
+  const [isInsideCircle, setIsInsideCircle] = useState<boolean>(false);
+  const [firstPositionCirclePoint, setFirstPositionCirclePoint] = useState<Position | null>(null);
+  const [maxAngle, setMaxAngle] = useState(0);
+  const [prevPoint, setPrevPoint] = useState<Position | null>(null);
   const wrapperElementRef = useRef<HTMLDivElement | null>(null);
 
   let canvas: HTMLCanvasElement | null = null;
@@ -76,12 +83,59 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, canvasTask, forbidd
         });
         fillPolygonBackground();
       }
+
+      if (canvasTask === 'line') {
+        const { fillLineTaskPolygonBackground } = useLinePolygonTask({
+          cy,
+          ctx,
+          maxDotsQuantity,
+          isInsidePolygon,
+          addNode,
+          setNodeAvailablePosition,
+          setIsInsidePolygon,
+          isInsideLine,
+          setIsInsideLine,
+          isInsideCircle,
+          setIsInsideCircle,
+          firstPositionCirclePoint,
+          setFirstPositionCirclePoint,
+          maxAngle,
+          setMaxAngle,
+          prevPoint,
+          setPrevPoint,
+        });
+        fillLineTaskPolygonBackground();
+      }
     });
 
     setImageWidth(image.width);
     setImageHeight(image.height);
 
-    cy.trigger("cyCanvas.resize")
+    cy.trigger("cyCanvas.resize");
+
+    if (canvasTask === 'line') {
+      const { addLine } = useLinePolygonTask({
+        cy,
+        ctx,
+        maxDotsQuantity,
+        isInsidePolygon,
+        addNode,
+        setNodeAvailablePosition,
+        setIsInsidePolygon,
+        isInsideLine,
+        setIsInsideLine,
+        isInsideCircle,
+        setIsInsideCircle,
+        firstPositionCirclePoint,
+        setFirstPositionCirclePoint,
+        maxAngle,
+        setMaxAngle,
+        prevPoint,
+        setPrevPoint,
+      });
+
+      addLine({width: image.width, height: image.height});
+    }
   }
 
   const setupCyLogic = (cyEvent: Core) => {
@@ -126,6 +180,10 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, canvasTask, forbidd
         setStyleSheet(selectionCanvasStylesheet);
         return;
       }
+      case 'line': {
+        setStyleSheet(lineCanvasStylesheet);
+        return;
+      }
     }
   }
 
@@ -139,6 +197,9 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, canvasTask, forbidd
       }
       case 'selection': {
         return getNodeAndEdgeDefaultSizeStyles(selectionCanvasStylesheet);
+      }
+      case 'line': {
+        return getNodeAndEdgeDefaultSizeStyles(lineCanvasStylesheet);
       }
     }
   }
@@ -238,6 +299,42 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, canvasTask, forbidd
         cy.on('boxend', handleSelectionTaskBoxEnd);
 
         cy.on('position', 'node', resizeRectangle)
+        return;
+      }
+      case 'line': {
+        const {
+          handlePolygonTaskClick,
+          handleLinePolygonTaskMouseDown,
+          handleLinePolygonTaskMouseUp,
+          handleLinePolygonTaskMouseMove,
+          handleMouseOut,
+          handleMouseOver
+        } = useLinePolygonTask({
+          cy,
+          ctx,
+          maxDotsQuantity,
+          isInsidePolygon,
+          addNode,
+          setNodeAvailablePosition,
+          setIsInsidePolygon,
+          isInsideLine,
+          setIsInsideLine,
+          isInsideCircle,
+          setIsInsideCircle,
+          firstPositionCirclePoint,
+          setFirstPositionCirclePoint,
+          maxAngle,
+          setMaxAngle,
+          prevPoint,
+          setPrevPoint,
+        });
+
+        cy.on('click', handlePolygonTaskClick);
+        cy.on('mousedown', handleLinePolygonTaskMouseDown);
+        cy.on('mouseup', handleLinePolygonTaskMouseUp);
+        cy.on('mousemove', handleLinePolygonTaskMouseMove);
+        cy.on('mouseover', handleMouseOver);
+        cy.on('mouseout', handleMouseOut)
         return;
       }
     }
