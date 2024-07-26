@@ -21,6 +21,8 @@ interface CytoscapeCanvasProps {
   maxLineQuantity?: number;
 }
 
+export const DEFAULT_DOT_CLASS = 'defaultDot';
+
 export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, canvasTask, forbiddenAreaInPercent = 0, setNodesPosition }: CytoscapeCanvasProps) {
   const {
     graphData,
@@ -41,7 +43,6 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, canvasTask, forbidd
   const [isInsideCircle, setIsInsideCircle] = useState<boolean>(false);
   const [firstPositionCirclePoint, setFirstPositionCirclePoint] = useState<Position | null>(null);
   const [maxAngle, setMaxAngle] = useState(0);
-  const [prevPoint, setPrevPoint] = useState<Position | null>(null);
   const wrapperElementRef = useRef<HTMLDivElement | null>(null);
 
   let canvas: HTMLCanvasElement | null = null;
@@ -77,7 +78,7 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, canvasTask, forbidd
       ctx.save();
       ctx.drawImage(image, 0, 0);
 
-      if (canvasTask === 'polygon') {
+      if (canvasTask === 'polygon' || canvasTask === 'line') {
         const { fillPolygonBackground } = usePolygonTask({
           cy, ctx, maxDotsQuantity, isInsidePolygon, addNode, setNodeAvailablePosition, setIsInsidePolygon
         });
@@ -85,26 +86,24 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, canvasTask, forbidd
       }
 
       if (canvasTask === 'line') {
-        const { fillLineTaskPolygonBackground } = useLinePolygonTask({
+        const { addLine } = useLinePolygonTask({
           cy,
           ctx,
           maxDotsQuantity,
           isInsidePolygon,
+          isInsideLine,
+          isInsideCircle,
+          firstPositionCirclePoint,
+          maxAngle,
           addNode,
           setNodeAvailablePosition,
           setIsInsidePolygon,
-          isInsideLine,
           setIsInsideLine,
-          isInsideCircle,
           setIsInsideCircle,
-          firstPositionCirclePoint,
           setFirstPositionCirclePoint,
-          maxAngle,
           setMaxAngle,
-          prevPoint,
-          setPrevPoint,
         });
-        fillLineTaskPolygonBackground();
+        addLine({width: image.width, height: image.height})
       }
     });
 
@@ -112,30 +111,6 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, canvasTask, forbidd
     setImageHeight(image.height);
 
     cy.trigger("cyCanvas.resize");
-
-    if (canvasTask === 'line') {
-      const { addLine } = useLinePolygonTask({
-        cy,
-        ctx,
-        maxDotsQuantity,
-        isInsidePolygon,
-        addNode,
-        setNodeAvailablePosition,
-        setIsInsidePolygon,
-        isInsideLine,
-        setIsInsideLine,
-        isInsideCircle,
-        setIsInsideCircle,
-        firstPositionCirclePoint,
-        setFirstPositionCirclePoint,
-        maxAngle,
-        setMaxAngle,
-        prevPoint,
-        setPrevPoint,
-      });
-
-      addLine({width: image.width, height: image.height});
-    }
   }
 
   const setupCyLogic = (cyEvent: Core) => {
@@ -314,19 +289,17 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, canvasTask, forbidd
           ctx,
           maxDotsQuantity,
           isInsidePolygon,
+          isInsideLine,
+          isInsideCircle,
+          firstPositionCirclePoint,
+          maxAngle,
           addNode,
           setNodeAvailablePosition,
           setIsInsidePolygon,
-          isInsideLine,
           setIsInsideLine,
-          isInsideCircle,
           setIsInsideCircle,
-          firstPositionCirclePoint,
           setFirstPositionCirclePoint,
-          maxAngle,
           setMaxAngle,
-          prevPoint,
-          setPrevPoint,
         });
 
         cy.on('click', handlePolygonTaskClick);
@@ -376,9 +349,10 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, canvasTask, forbidd
 
     const newNode: ElementDefinition = {
       data: {
-        id: `dot${cy.nodes().length}`,
-        label: `${cy.nodes().length + 1}`
+        id: `dot${cy.nodes(`.${DEFAULT_DOT_CLASS}`).length}`,
+        label: `${cy.nodes(`.${DEFAULT_DOT_CLASS}`).length + 1}`
       },
+      classes: DEFAULT_DOT_CLASS,
       position: {x: clickPosition.x, y: clickPosition.y},
       selectable: true
     }

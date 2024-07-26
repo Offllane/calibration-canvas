@@ -1,6 +1,7 @@
 import {Stylesheet} from 'cytoscape';
 import pointer from '../../images/pointer.svg';
 import {edgeWithLabelId} from './taskHooks/selectionTask.hook';
+import {CIRCLE_RADIUS, LINE_CIRCLE_DOT_CLASS, LINE_DOT_CLASS} from './taskHooks/linePolygonTask.hook';
 
 const defaultStyleSheet: Array<Stylesheet> = [
   {
@@ -123,6 +124,7 @@ export const selectionCanvasStylesheet: Array<Stylesheet> = [
 
 export const lineCanvasStylesheet: Array<Stylesheet> = [
   ...defaultStyleSheet,
+  // @ts-ignore
   {
     selector: 'node',
     style: {
@@ -132,6 +134,7 @@ export const lineCanvasStylesheet: Array<Stylesheet> = [
       'background-color': 'yellow',
     }
   },
+  // @ts-ignore
   {
     selector: 'edge',
     style: {
@@ -139,4 +142,22 @@ export const lineCanvasStylesheet: Array<Stylesheet> = [
       'line-color': '#ADFF2F',
     }
   },
+  {
+    selector: `.${LINE_DOT_CLASS}`,
+    style: {
+      "background-opacity": 0,
+    }
+  },
+  {
+    selector: `.${LINE_CIRCLE_DOT_CLASS}`,
+    style: {
+      width: CIRCLE_RADIUS * 2,
+      height: CIRCLE_RADIUS * 2,
+      shape: 'ellipse',
+      'border-width': 8,
+      'border-color': 'black',
+      "background-opacity": 0,
+      "opacity": .1
+    },
+  }
 ]

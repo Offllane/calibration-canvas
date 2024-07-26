@@ -1,6 +1,6 @@
 import {Core, ElementDefinition, EventObject, NodeCollection, NodeSingular} from 'cytoscape';
 import {Position} from '../../../types/types';
-import {isLineNodes} from "../../../shared/hooks/line.hook";
+import {DEFAULT_DOT_CLASS} from '../cytoscapeCanvas';
 
 interface PolygonTaskProps {
   cy: Core;
@@ -10,8 +10,6 @@ interface PolygonTaskProps {
   setNodeAvailablePosition: (position: Position) => Position;
   addNode: (position: Position) => void;
   setIsInsidePolygon: (data: boolean) => void;
-  isLine?: boolean;
-  linesQuantity?: number;
 }
 
 export function usePolygonTask(
@@ -22,9 +20,7 @@ export function usePolygonTask(
     isInsidePolygon,
     setNodeAvailablePosition,
     addNode,
-    setIsInsidePolygon,
-    isLine,
-    linesQuantity
+    setIsInsidePolygon
   }: PolygonTaskProps) {
   const handlePolygonTaskClick = (event: EventObject) => {
     if (isNodesCountMax()) { return; }
@@ -37,7 +33,7 @@ export function usePolygonTask(
   const handlePolygonTaskMouseDown = (event: EventObject) => {
     if (!isNodesCountMax()) { return; }
 
-    const isInsidePolygon: boolean = isClickedInsidePolygon(cy!.nodes(), event.position.x, event.position.y);
+    const isInsidePolygon: boolean = isClickedInsidePolygon(cy.nodes(`.${DEFAULT_DOT_CLASS}`), event.position.x, event.position.y);
     setIsInsidePolygon(isInsidePolygon);
   }
 
@@ -60,11 +56,7 @@ export function usePolygonTask(
     cy.userPanningEnabled(false);
     cy.boxSelectionEnabled(false);
 
-    cy.nodes().forEach((node: NodeSingular) => {
-      if (isLineNodes(node.id())) {
-        return;
-      }
-
+    cy.nodes(`.${DEFAULT_DOT_CLASS}`).forEach((node: NodeSingular) => {
       const newPosition: Position = getNewNodePositionOnMoveEvent(moveEvent, node.position());
       node.position(newPosition);
     });
@@ -74,12 +66,9 @@ export function usePolygonTask(
     if (!cy) { return; }
     if (!isNodesCountMax()) { return; }
 
-    const edges: ElementDefinition[] = cy.nodes().reduce((acc: ElementDefinition[], node, index) => {
-      if (isLineNodes(node.id())) {
-        return acc;
-      }
-
-      const targetIndex = index + 1 === cy!.nodes().length ? 0 + (isLine ? 3 : 0) : index + 1;
+    const edges: ElementDefinition[] = cy.nodes(`.${DEFAULT_DOT_CLASS}`).reduce((acc: ElementDefinition[], _, index) => {
+      //TODO update here
+      const targetIndex = index + 1 === cy.nodes(`.${DEFAULT_DOT_CLASS}`).length ? 0 : index + 1;
       let id = `edge${index}`
 
       acc.push({
@@ -96,26 +85,17 @@ export function usePolygonTask(
     cy.add(edges);
   }
 
-  const isClickedInsidePolygon = (nodes: NodeCollection, x: number, y: number): boolean => {
-    const linesNode = isLine ? 3 * linesQuantity! : 0;
-    let npol = nodes.length - linesNode;
+  const isClickedInsidePolygon = (nodesFromLineOrCircle: NodeCollection, x: number, y: number): boolean => {
+    let npol = nodesFromLineOrCircle.length;
     let j = npol - 1;
     let isInsidePolygon = false;
-    const xp = nodes.reduce((acc: number[], node) => {
-      if (isLineNodes(node.id())) {
-        return acc;
-      }
-
+    const xp = nodesFromLineOrCircle.reduce((acc: number[], node) => {
       acc.push(node.position().x);
 
       return acc;
     }, []);
 
-    const yp = nodes.reduce((acc: number[], node) => {
-      if (isLineNodes(node.id())) {
-        return acc;
-      }
-
+    const yp = nodesFromLineOrCircle.reduce((acc: number[], node) => {
       acc.push(node.position().y);
 
       return acc;
@@ -137,11 +117,7 @@ export function usePolygonTask(
     if (!cy) { return false; }
 
     // check is each polygon new Position are available
-    return cy.nodes().reduce((acc, node) => {
-      if (isLineNodes(node.id())) {
-        return acc;
-      }
-
+    return cy.nodes(`.${DEFAULT_DOT_CLASS}`).reduce((acc, node) => {
       const newPosition: Position = getNewNodePositionOnMoveEvent(moveEvent, node.position());
 
       if (!isNewNodePositionAvailable(newPosition)) { return false; }
@@ -173,7 +149,7 @@ export function usePolygonTask(
     ctx.fillStyle = 'rgba(0, 0, 255, 0.1)';
     ctx.beginPath();
 
-    cy.nodes().forEach((node) => {
+    cy.nodes(`.${DEFAULT_DOT_CLASS}`).forEach((node) => {
       ctx!.lineTo(node.position().x, node.position().y);
     });
 
@@ -184,13 +160,7 @@ export function usePolygonTask(
   const isNodesCountMax = (): boolean => {
     if (!cy) { return false; }
 
-    let maxDotsCount = maxDotsQuantity;
-
-    if (isLine) {
-      maxDotsCount += 3;
-    }
-
-    return cy.nodes().length === maxDotsCount;
+    return cy.nodes(`.${DEFAULT_DOT_CLASS}`).length === maxDotsQuantity;
   }
 
   return {
