@@ -2,7 +2,7 @@ import {Core, ElementDefinition, EventObject, NodeSingular} from 'cytoscape';
 import { Position, Size} from '../../../types/types';
 import {usePolygonTask} from "./polygonTask.hook";
 
-export const CIRCLE_RADIUS = 75;
+export const CIRCLE_RADIUS = 150;
 export const LINE_DOT_CLASS = 'lineDot';
 export const LINE_CIRCLE_DOT_CLASS = 'lineCircleDot';
 

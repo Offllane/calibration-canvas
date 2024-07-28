@@ -322,23 +322,23 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, canvasTask, forbidd
     const minZoom = calculateMinZoom();
     setIsZoomed(cy!.zoom() !== minZoom);
 
-    cy?.nodes().css(calculateElementsSizeStylesForCurrentZoom('node'));
+    cy?.nodes(`.${DEFAULT_DOT_CLASS}`).css(calculateElementsSizeStylesForCurrentZoom('node'));
     cy?.edges().css(calculateElementsSizeStylesForCurrentZoom('edge'));
   }
 
   const calculateElementsSizeStylesForCurrentZoom = (selector: 'node' | 'edge') => {
-    let defaultNodeSizeStyles: SizeStyles = {};
+    let defaultElementSizeStyles: SizeStyles = {};
     let zoomedElementSizeStyles: SizeStyles = {};
 
     if (selector === 'node') {
-      defaultNodeSizeStyles = getElementDefaultSizeStylesAccordingToTask(canvasTask).nodeFixedSizeStyles;
+      defaultElementSizeStyles = getElementDefaultSizeStylesAccordingToTask(canvasTask).nodeFixedSizeStyles;
     }
     if (selector === 'edge') {
-      defaultNodeSizeStyles = getElementDefaultSizeStylesAccordingToTask(canvasTask).edgeFixedSizeStyles;
+      defaultElementSizeStyles = getElementDefaultSizeStylesAccordingToTask(canvasTask).edgeFixedSizeStyles;
     }
 
-    for (let style in defaultNodeSizeStyles) {
-      zoomedElementSizeStyles[style] =  defaultNodeSizeStyles[style]! / cy!.zoom();
+    for (let style in defaultElementSizeStyles) {
+      zoomedElementSizeStyles[style] =  defaultElementSizeStyles[style]! / cy!.zoom();
     }
 
     return zoomedElementSizeStyles;
@@ -465,22 +465,12 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, canvasTask, forbidd
     return fixedSizeStyles;
   }
 
-  const setFixedCoefficient = (fixedSizeStyles: SizeStyles, selector: 'node' | 'edge') => {
-    const minZoom = calculateMinZoom();
-    let fixedCoefficientValues: SizeStyles = {};
-    for (let style in fixedSizeStyles) {
-      fixedCoefficientValues[style] = fixedSizeStyles[style]! * minZoom;
-    }
-  }
-
   const setStylesAccordingToImageSize = () => {
     const elementsDefaultSizes: ElementsSizeStyles = getElementDefaultSizeStylesAccordingToTask(canvasTask);
     const nodeFixedSizeStyles: SizeStyles = calculateFixedStyles(elementsDefaultSizes.nodeFixedSizeStyles);
     const edgeFixedSizeStyles: SizeStyles = calculateFixedStyles(elementsDefaultSizes.edgeFixedSizeStyles);
 
-    setFixedCoefficient(nodeFixedSizeStyles, 'node');
-
-    cy!.style().selector('node').style(nodeFixedSizeStyles);
+    cy!.style().selector(`.${DEFAULT_DOT_CLASS}`).style(nodeFixedSizeStyles);
     cy!.style().selector('edge').style(edgeFixedSizeStyles);
   }
 
