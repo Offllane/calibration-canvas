@@ -185,8 +185,10 @@ export function useLinePolygonTask(
   };
 
   const getMaxAngle = ({width, height}: Size): number => {
-    const vx1 = 0 - width / 2;
-    return Math.atan(vx1 / ((0 - height / 2) * vx1 / (0 - width / 2))) * 180 / Math.PI;
+    if (width < height) {
+      return Math.atan((height/2)/(width/2)) * 180 / Math.PI;
+    }
+    return Math.atan((width/2)/(height/2)) * 180 / Math.PI;
   }
 
   const moveLine = (moveEvent: EventObject): void => {
@@ -354,7 +356,15 @@ export function useLinePolygonTask(
       angle = maxAngle * 2 - maxAngle/2 + angle;
     }
 
-    if (angle > maxAngle * 2) { return; }
+    if (angle > maxAngle * 2) {
+      const position = getNewLineNodesPosition({circleCenterPosition, angle});
+
+      if (position?.length === 2) {
+        return angle;
+      }
+
+      return;
+    }
 
     return angle;
   }
