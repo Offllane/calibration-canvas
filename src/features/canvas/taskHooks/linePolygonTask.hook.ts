@@ -2,7 +2,7 @@ import {Core, ElementDefinition, EventObject, NodeSingular} from 'cytoscape';
 import { Position, Size} from '../../../types/types';
 import {usePolygonTask} from "./polygonTask.hook";
 
-export const CIRCLE_RADIUS = 150;
+export const CIRCLE_RADIUS = 50;
 export const LINE_DOT_CLASS = 'lineDot';
 export const LINE_CIRCLE_DOT_CLASS = 'lineCircleDot';
 
@@ -22,20 +22,21 @@ interface LinePolygonTaskProps {
   setFirstPositionCirclePoint: (data: Position | null) => void;
   maxAngle: number; // angle limitation
   setMaxAngle: (data: number) => void;
+  lineQuantity?: number;
 }
 
-type AngleParams = {
+export type AngleParams = {
   circleCenterPosition: Position;
   angleCurrentPosition: Position;
   angleStartPosition: Position;
 }
 
-type CorrectAngleParams = {
+export type CorrectAngleParams = {
   event: EventObject;
   circleCenterPosition: Position;
 }
 
-type NewNodeLinePositionParams = {
+export type NewNodeLinePositionParams = {
   circleCenterPosition: Position;
   angle: number;
 }
@@ -64,7 +65,9 @@ export function useLinePolygonTask(
     handlePolygonTaskMouseUp,
     handlePolygonTaskMouseMove,
     handlePolygonTaskMouseDown,
-    getNewNodePositionOnMoveEvent
+    getNewNodePositionOnMoveEvent,
+    isNodesCountMax,
+    isPolygonNodesNewPositionsAvailable
   } = usePolygonTask({
     cy,
     ctx,
@@ -227,14 +230,20 @@ export function useLinePolygonTask(
   }
 
   const isPointOnLine = (coordinates: Position[], x: number, y: number): boolean => {
-    if (coordinates.length !== 2) { return false; }
+    if (coordinates.length % 2 !== 0) { return false; }
 
-    const segmentLength = Math.sqrt((coordinates[1].x - coordinates[0].x + 0.05) ** 2 + (coordinates[1].y - coordinates[0].y + 0.05) ** 2);
-    const distanceToStart = Math.sqrt((x - coordinates[0].x) ** 2 + (y - coordinates[0].y) ** 2);
-    const distanceToEnd = Math.sqrt((x - coordinates[1].x) ** 2 + (y - coordinates[1].y) ** 2);
-    const linePadding = 0.0001;
+    for (let i = 0; i < coordinates.length; i+=2) {
+      const segmentLength = Math.sqrt((coordinates[i + 1].x - coordinates[i].x + 0.05) ** 2 + (coordinates[i + 1].y - coordinates[i].y + 0.05) ** 2);
+      const distanceToStart = Math.sqrt((x - coordinates[i].x) ** 2 + (y - coordinates[i].y) ** 2);
+      const distanceToEnd = Math.sqrt((x - coordinates[i + 1].x) ** 2 + (y - coordinates[i + 1].y) ** 2);
+      const linePadding = 0.0001;
 
-    return distanceToStart + distanceToEnd <= segmentLength + linePadding;
+      if (distanceToStart + distanceToEnd <= segmentLength + linePadding) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   const getLineCoordinates = (): Array<Position> => {
@@ -264,18 +273,25 @@ export function useLinePolygonTask(
     return nodesPositions;
   }
 
-  const isPointOnCircle = (event: EventObject, coordinate: Position): boolean => {
-    const distance = Math.sqrt(
-      Math.pow(event.position.x - coordinate.x, 2) + Math.pow(event.position.y - coordinate.y, 2)
-    );
+  const isPointOnCircle = (eventPosition: Position, coordinate: Position[]): boolean => {
+    let distance = Infinity;
+    for (let i = 0; i < coordinate.length; i++) {
+      distance = Math.min(distance, Math.sqrt(
+        Math.pow(eventPosition.x - coordinate[i].x, 2) + Math.pow(eventPosition.y - coordinate[i].y, 2)
+      ));
+    }
 
     return distance <= CIRCLE_RADIUS;
   }
 
   const isMouseOverCircle = (event: EventObject): boolean => {
-    const lineCircleCoordinate = getCircleCoordinate()[0];
+    const lineCircleCoordinate = getCircleCoordinate();
 
-    return isPointOnCircle(event, lineCircleCoordinate);
+    if (!lineCircleCoordinate.length) {
+      return false;
+    }
+
+    return isPointOnCircle(event.position, lineCircleCoordinate);
   }
 
   const rotateLine = (event: EventObject): void => {
@@ -359,7 +375,7 @@ export function useLinePolygonTask(
     if (angle > maxAngle * 2) {
       const position = getNewLineNodesPosition({circleCenterPosition, angle});
 
-      if (position?.length === 2) {
+      if (position) {
         return angle;
       }
 
@@ -374,7 +390,12 @@ export function useLinePolygonTask(
 
     const angleRad = (angleDeg * Math.PI) / 180;
 
-    const y3 = y1 + (vx1 / Math.tan(angleRad)) * (x3 - x1) / vx1;
+    let cross = (vx1 / Math.tan(angleRad));
+
+    if (!angleDeg) {
+      cross = 1;
+    }
+    const y3 = y1 + cross  * (x3 - x1) / vx1;
 
     return y3;
   }
@@ -398,8 +419,6 @@ export function useLinePolygonTask(
       }
     });
 
-    if (position.length !== 2) { return; }
-
     for (let i = 0; i < position.length; i++) {
       const isAvailable = isNewNodePositionAvailable(position[i]);
 
@@ -416,6 +435,21 @@ export function useLinePolygonTask(
     handleLinePolygonTaskMouseMove,
     addLine,
     handleMouseOver,
-    handleMouseOut
+    handleMouseOut,
+    isNodesCountMax,
+    isPointOnCircle,
+    getCircleCoordinate,
+    handlePolygonTaskMouseMove,
+    calculateY3,
+    isNewNodePositionAvailable,
+    getCorrectAngle,
+    getMaxAngle,
+    getNewLineNodesPosition,
+    isPolygonNodesNewPositionsAvailable,
+    getNewNodePositionOnMoveEvent,
+    isMouseOverCircle,
+    isMouseOverLine,
+    handlePolygonTaskMouseDown,
+    isPointOnLine
   }
 }

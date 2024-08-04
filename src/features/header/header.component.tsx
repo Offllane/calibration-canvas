@@ -29,6 +29,12 @@ export function HeaderComponent() {
         >
           Line polygon
         </Link>
+        <Link
+          to='/lines-polygon'
+          className='menu__link'
+        >
+          Lines polygon
+        </Link>
       </nav>
     </header>
   );

@@ -6,6 +6,7 @@ import {CanvasPolygonPage} from './pages/canvasPolygonPage/canvasPolygon.page';
 import {CanvasSelectPage} from './pages/canvasSelectPage/canvasSelect.page';
 import {HeaderComponent} from './features/header/header.component';
 import {LinePolygonPage} from "./pages/linePolygonPage/linePolygon.page";
+import {LinesPolygonPage} from "./pages/linesPolygonPage/linesPolygon.page";
 
 function App() {
   return (
@@ -27,6 +28,10 @@ function App() {
           <Route
             path="/line-polygon"
             element={<LinePolygonPage/>}
+          />
+          <Route
+            path="/lines-polygon"
+            element={<LinesPolygonPage/>}
           />
         </Routes>
     </>
