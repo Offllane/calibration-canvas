@@ -106,6 +106,7 @@ export function useLinesPolygonTask({
 
   const handleLinesPolygonTaskMouseUp = () => {
     setSelectedLineNodeId('');
+    cy.userPanningEnabled(true);
     return handleLinePolygonTaskMouseUp();
   }
 
@@ -529,6 +530,8 @@ export function useLinesPolygonTask({
       return;
     }
 
+    cy.userPanningEnabled(false);
+    cy.boxSelectionEnabled(false);
     const nodes = cy.nodes(`.${LINE_DOT_CLASS}`).filter((item) => {
       const id = +item.id().replace(`${LINE_DOT_CLASS}`, '');
       return id === +selectedLineNodeId || id === +selectedLineNodeId + 1;
