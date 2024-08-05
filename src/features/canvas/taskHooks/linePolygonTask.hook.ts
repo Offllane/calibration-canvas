@@ -238,7 +238,7 @@ export function useLinePolygonTask(
       const distanceToEnd = Math.sqrt((x - coordinates[i + 1].x) ** 2 + (y - coordinates[i + 1].y) ** 2);
       const linePadding = 0.0001;
 
-      if (distanceToStart + distanceToEnd <= segmentLength + linePadding) {
+      if (distanceToStart + distanceToEnd - 1 <= segmentLength + linePadding) {
         return true;
       }
     }
