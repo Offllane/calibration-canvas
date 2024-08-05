@@ -11,6 +11,7 @@ import {usePointsTask} from './taskHooks/pointsTask.hook';
 import {useSelectionTask} from './taskHooks/selectionTask.hook';
 import {Minimap} from '../minimap/minimap';
 import {useLinePolygonTask} from "./taskHooks/linePolygonTask.hook";
+import {useLinesPolygonTask} from "./taskHooks/linesPolygonTask.hook";
 
 interface CytoscapeCanvasProps {
   imageSrc: string | null;
@@ -18,12 +19,12 @@ interface CytoscapeCanvasProps {
   canvasTask: CanvasTask;
   forbiddenAreaInPercent?: number;
   setNodesPosition: (data: NodesPositionInfo) => void;
-  maxLineQuantity?: number;
+  lineQuantity?: number;
 }
 
 export const DEFAULT_DOT_CLASS = 'defaultDot';
 
-export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, canvasTask, forbiddenAreaInPercent = 0, setNodesPosition }: CytoscapeCanvasProps) {
+export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, canvasTask, forbiddenAreaInPercent = 0, setNodesPosition, lineQuantity }: CytoscapeCanvasProps) {
   const {
     graphData,
     layout,
@@ -43,6 +44,8 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, canvasTask, forbidd
   const [isInsideCircle, setIsInsideCircle] = useState<boolean>(false);
   const [firstPositionCirclePoint, setFirstPositionCirclePoint] = useState<Position | null>(null);
   const [maxAngle, setMaxAngle] = useState(0);
+  const [currentAngle, setCurrentAngle] = useState(0);
+  const [selectedLineNodeId, setSelectedLineNodeId] = useState<string>('');
   const wrapperElementRef = useRef<HTMLDivElement | null>(null);
 
   let canvas: HTMLCanvasElement | null = null;
@@ -78,7 +81,7 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, canvasTask, forbidd
       ctx.save();
       ctx.drawImage(image, 0, 0);
 
-      if (canvasTask === 'polygon' || canvasTask === 'line') {
+      if (canvasTask === 'polygon' || canvasTask === 'line' || canvasTask === 'lines') {
         const { fillPolygonBackground } = usePolygonTask({
           cy, ctx, maxDotsQuantity, isInsidePolygon, addNode, setNodeAvailablePosition, setIsInsidePolygon
         });
@@ -95,6 +98,7 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, canvasTask, forbidd
           isInsideCircle,
           firstPositionCirclePoint,
           maxAngle,
+          lineQuantity,
           addNode,
           setNodeAvailablePosition,
           setIsInsidePolygon,
@@ -122,7 +126,7 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, canvasTask, forbidd
     addGeneralEventListeners(imageSize, canvasSize);
     setupCanvasAccordingToTask(canvasTask);
     setStylesheetAccordingToTask(canvasTask);
-    addEventsAccordingToTask(canvasTask);
+    addEventsAccordingToTask(canvasTask, imageSize);
   }
 
   const addGeneralEventListeners = (imageSize: Size, canvasSize: Size) => {
@@ -155,7 +159,8 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, canvasTask, forbidd
         setStyleSheet(selectionCanvasStylesheet);
         return;
       }
-      case 'line': {
+      case 'line':
+      case 'lines':  {
         setStyleSheet(lineCanvasStylesheet);
         return;
       }
@@ -173,7 +178,8 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, canvasTask, forbidd
       case 'selection': {
         return getNodeAndEdgeDefaultSizeStyles(selectionCanvasStylesheet);
       }
-      case 'line': {
+      case 'line':
+      case 'lines': {
         return getNodeAndEdgeDefaultSizeStyles(lineCanvasStylesheet);
       }
     }
@@ -206,7 +212,7 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, canvasTask, forbidd
     return fixedSizeStyles;
   }
 
-  const addEventsAccordingToTask = (canvasTask: CanvasTask) => {
+  const addEventsAccordingToTask = (canvasTask: CanvasTask, imageSize: Size) => {
     if (!cy) { return; }
 
     switch (canvasTask) {
@@ -293,6 +299,7 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, canvasTask, forbidd
           isInsideCircle,
           firstPositionCirclePoint,
           maxAngle,
+          lineQuantity,
           addNode,
           setNodeAvailablePosition,
           setIsInsidePolygon,
@@ -308,6 +315,49 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, canvasTask, forbidd
         cy.on('mousemove', handleLinePolygonTaskMouseMove);
         cy.on('mouseover', handleMouseOver);
         cy.on('mouseout', handleMouseOut)
+        return;
+      }
+
+      case 'lines': {
+        const {
+          handlePolygonTaskClick,
+          handleLinePolygonTaskMouseDown,
+          handleLinePolygonTaskMouseUp,
+          handleLinePolygonTaskMouseMove,
+          handleMouseOut,
+          handleMouseOver,
+          handleDragNode
+        } = useLinesPolygonTask({
+          cy,
+          ctx,
+          maxDotsQuantity,
+          isInsidePolygon,
+          isInsideLine,
+          isInsideCircle,
+          firstPositionCirclePoint,
+          maxAngle,
+          lineQuantity,
+          addNode,
+          setNodeAvailablePosition,
+          setIsInsidePolygon,
+          setIsInsideLine,
+          setIsInsideCircle,
+          setFirstPositionCirclePoint,
+          setMaxAngle,
+          imageSize,
+          currentAngle,
+          setCurrentAngle,
+          selectedLineNodeId,
+          setSelectedLineNodeId
+        });
+
+        cy.on('click', handlePolygonTaskClick);
+        cy.on('mousedown', handleLinePolygonTaskMouseDown);
+        cy.on('mouseup', handleLinePolygonTaskMouseUp);
+        cy.on('mousemove', handleLinePolygonTaskMouseMove);
+        cy.on('mouseover', handleMouseOver);
+        cy.on('mouseout', handleMouseOut);
+        cy.on('drag', 'node', handleDragNode)
         return;
       }
     }

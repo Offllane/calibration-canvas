@@ -171,6 +171,7 @@ export function usePolygonTask(
     fillPolygonBackground,
     isNewNodePositionAvailable,
     getNewNodePositionOnMoveEvent,
-    isNodesCountMax
+    isNodesCountMax,
+    isPolygonNodesNewPositionsAvailable
   }
 }

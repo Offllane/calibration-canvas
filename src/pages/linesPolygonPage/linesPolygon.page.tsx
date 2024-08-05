@@ -1,8 +1,8 @@
 import {useImage} from "../../shared/hooks/image.hook";
-import {CytoscapeCanvas} from "../../features/canvas/cytoscapeCanvas";
 import {useNodePosition} from "../../shared/hooks/nodesPosition.hook";
+import {CytoscapeCanvas} from "../../features/canvas/cytoscapeCanvas";
 
-export function LinePolygonPage() {
+export function LinesPolygonPage() {
   const {imageSrc, setImageToCanvas} = useImage('http://localhost:4000/getImage');
   const { nodesPosition, setNodesPosition } = useNodePosition();
 
@@ -11,9 +11,9 @@ export function LinePolygonPage() {
       <CytoscapeCanvas
         imageSrc={imageSrc}
         maxDotsQuantity={6}
-        canvasTask='line'
+        canvasTask='lines'
         setNodesPosition={setNodesPosition}
-        lineQuantity={1}
+        lineQuantity={2}
       />
       <aside>
         <button onClick={setImageToCanvas}>
@@ -25,4 +25,4 @@ export function LinePolygonPage() {
       </aside>
     </div>
   );
-}
+};

@@ -13,7 +13,7 @@ export type NodesPositionInfo = {
   percentagePosition: Array<Position>
 }
 
-export type CanvasTask = 'points' | 'polygon' | 'selection' | 'line';
+export type CanvasTask = 'points' | 'polygon' | 'selection' | 'line' | 'lines';
 
 export type ElementsSizeStyles = {
   nodeFixedSizeStyles: SizeStyles;
