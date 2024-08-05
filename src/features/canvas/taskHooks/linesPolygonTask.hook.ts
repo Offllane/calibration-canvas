@@ -234,7 +234,7 @@ export function useLinesPolygonTask({
         continue;
       }
 
-      if (center.x > currentNode.position().x) {
+      if (center.x >= currentNode.position().x || center.x >= nextNode.position().x) {
         points.leftNode = findIntersection({
           firstLineNodePosition: {
             firstNodePosition: currentNode.position(),
@@ -277,9 +277,15 @@ export function useLinesPolygonTask({
       const currentNode = nodes[i].position();
       const nextNode = nodes[i + 1 >= nodes.length ? 0 : i + 1].position();
 
-      if ((secondPoint.x > currentNode.x && firstPoint.x < currentNode.x)
-      || (secondPoint.x < currentNode.x && firstPoint.x > currentNode.x)) {
-        continue;
+      const isLeftNode = firstPoint.x > secondPoint.x;
+      if (isLeftNode) {
+        if (currentNode.x < firstPoint.x && nextNode.x < firstPoint.x)  {
+          continue;
+        }
+      } else {
+        if (currentNode.x > firstPoint.x && nextNode.x > firstPoint.x)  {
+          continue;
+        }
       }
 
       const newPosition = findIntersection({
@@ -294,6 +300,16 @@ export function useLinesPolygonTask({
       });
 
 
+      if (isLeftNode) {
+        if (newPosition.x < firstPoint.x)  {
+          continue;
+        }
+      } else {
+        if (newPosition.x > firstPoint.x)  {
+          continue;
+        }
+      }
+
       if (!isBetweenPoint(currentNode, nextNode, newPosition)) {
         continue;
       }
@@ -303,7 +319,7 @@ export function useLinesPolygonTask({
   }
 
   const isBetweenPoint = (firstPoint: Position, secondPoint: Position, newPoint: Position) => {
-    if (firstPoint.x < secondPoint.x) {
+    if (firstPoint.x <= secondPoint.x) {
       return newPoint.x >= firstPoint.x && newPoint.x <= secondPoint.x;
     }
 
@@ -432,11 +448,18 @@ export function useLinesPolygonTask({
 
     const positions = getNewLineNodesPosition(angle);
 
-    if (!positions) { return; }
+    if (!positions || positions.length < cy.nodes(`.${LINE_DOT_CLASS}`).length) { return; }
 
     setCurrentAngle(angle);
 
-    cy.nodes(`.${LINE_DOT_CLASS}`).forEach((node) => {
+    const newPositions: {
+      position: Position;
+      id: string
+    }[] = [];
+
+    const nodes = cy.nodes(`.${LINE_DOT_CLASS}`);
+
+    nodes.forEach((node) => {
       const position = positions.find((item) => item.id === node.id());
       if (!position) {
         return;
@@ -448,7 +471,23 @@ export function useLinesPolygonTask({
         return;
       }
 
-      node.position(newPosition);
+      newPositions.push({
+        position: newPosition,
+        id: node.id(),
+      })
+    });
+
+    if (nodes.length !== newPositions.length) {
+      return;
+    }
+
+    nodes.forEach((node) => {
+      const position = newPositions.find((item) => item.id === node.id());
+      if (!position) {
+        return;
+      }
+
+      node.position(position.position);
     });
   }
 
@@ -465,7 +504,7 @@ export function useLinesPolygonTask({
         return 2 === +item.id().replace(LINE_CIRCLE_DOT_CLASS, '');
       })[0].position();
 
-      const x = (newCirclePosition?.x ?? circleCenterPosition.x) > node.position().x ? 0 : imageSize.width
+      const x = +node.id().replace(`${LINE_DOT_CLASS}`, '') % 2 === 1 ? 0 : imageSize.width;
       const y3 = calculateY3(newCirclePosition?.x ?? circleCenterPosition.x, newCirclePosition?.y ?? circleCenterPosition.y, x, x, angle);
 
       position.push({
@@ -555,7 +594,6 @@ export function useLinesPolygonTask({
       return;
     }
 
-    circle.position(newCirclePosition);
 
     const positions = getNewLineNodesPosition(currentAngle, newCirclePosition);
 
@@ -593,8 +631,10 @@ export function useLinesPolygonTask({
         return;
       }
 
-      node.position(position.position)
+      node.position(position.position);
     })
+
+    circle.position(newCirclePosition);
   }
 
   const isPointInPolygon = (point: Position): boolean => {
