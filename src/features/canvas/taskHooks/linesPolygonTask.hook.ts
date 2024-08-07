@@ -234,7 +234,7 @@ export function useLinesPolygonTask({
         continue;
       }
 
-      if (center.x >= currentNode.position().x || center.x >= nextNode.position().x) {
+      if ((center.x >= currentNode.position().x || center.x >= nextNode.position().x) && !points.leftNode) {
         points.leftNode = findIntersection({
           firstLineNodePosition: {
             firstNodePosition: currentNode.position(),
