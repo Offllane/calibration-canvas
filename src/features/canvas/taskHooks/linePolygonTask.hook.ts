@@ -1,6 +1,7 @@
 import {Core, ElementDefinition, EventObject, NodeSingular} from 'cytoscape';
 import { Position, Size} from '../../../types/types';
 import {usePolygonTask} from "./polygonTask.hook";
+import {DEFAULT_DOT_CLASS} from '../cytoscapeCanvas';
 
 export const CIRCLE_RADIUS = 50;
 export const LINE_DOT_CLASS = 'lineDot';
@@ -93,6 +94,14 @@ export function useLinePolygonTask(
 
     const isMouseInsideLine = isMouseOverLine(event);
     setIsInsideLine(isMouseInsideLine);
+    cy.autoungrabify(isMouseInsideLine);
+
+    if (isMouseInsideLine) {
+      cy.nodes(`.${DEFAULT_DOT_CLASS}`).forEach((node) => {
+        node.addClass('no-overlay');
+      })
+      cy.autoungrabify(true);
+    }
 
     if (isMouseInsideLine) { return; }
 
@@ -115,6 +124,11 @@ export function useLinePolygonTask(
   }
 
   const handleLinePolygonTaskMouseUp = () => {
+    cy!.autoungrabify(false)
+    cy.nodes(`.${DEFAULT_DOT_CLASS}`).forEach((node) => {
+      node.removeClass('no-overlay');
+    })
+
     if (isInsideCircle) {
       setIsInsideCircle(false);
       cy!.userPanningEnabled(true);

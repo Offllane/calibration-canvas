@@ -159,5 +159,11 @@ export const lineCanvasStylesheet: Array<Stylesheet> = [
       "background-opacity": 0,
       "opacity": .1
     },
+  },
+  {
+    selector: `.no-overlay`,
+    style: {
+      "overlay-opacity": 0
+    }
   }
 ]
