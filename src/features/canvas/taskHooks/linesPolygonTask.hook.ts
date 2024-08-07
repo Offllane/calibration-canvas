@@ -234,7 +234,7 @@ export function useLinesPolygonTask({
         continue;
       }
 
-      if (center.x >= currentNode.position().x || center.x >= nextNode.position().x) {
+      if ((center.x >= currentNode.position().x || center.x >= nextNode.position().x) && !points.leftNode) {
         points.leftNode = findIntersection({
           firstLineNodePosition: {
             firstNodePosition: currentNode.position(),
@@ -442,7 +442,6 @@ export function useLinesPolygonTask({
     const angle = getCorrectAngle({event, circleCenterPosition});
 
     if (!angle) {
-      setCurrentAngle(0)
       return;
     }
 
@@ -625,16 +624,19 @@ export function useLinesPolygonTask({
       return;
     }
 
+    const nodeNewPosition: Position[] = [];
     nodes.forEach((node) => {
       const position = newPositions.find((item) => item.id === node.id());
       if (!position) {
         return;
       }
 
+      nodeNewPosition.push(position.position);
       node.position(position.position);
     })
 
-    circle.position(newCirclePosition);
+    const center = getLineCenter(nodeNewPosition[0], nodeNewPosition[1]);
+    circle.position(center.center);
   }
 
   const isPointInPolygon = (point: Position): boolean => {
