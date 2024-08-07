@@ -136,6 +136,12 @@ export function useLinePolygonTask(
     return handlePolygonTaskMouseUp();
   }
 
+  const handleClick = (event: EventObject) => {
+    if (isInsideLine) { return; }
+
+    handlePolygonTaskClick(event)
+  }
+
   const handleMouseOver = (event: EventObject): void => {
     const isMouseInsideCircle = isMouseOverCircle(event);
     const isMouseInsideLine = isMouseOverLine(event);
@@ -429,7 +435,7 @@ export function useLinePolygonTask(
   }
 
   return {
-    handlePolygonTaskClick,
+    handlePolygonTaskClick: handleClick,
     handleLinePolygonTaskMouseDown,
     handleLinePolygonTaskMouseUp,
     handleLinePolygonTaskMouseMove,
