@@ -113,6 +113,7 @@ export function useLinesPolygonTask({
   const handleClick = (event: EventObject): void => {
     if (!lineQuantity) { return; }
     if (isInsideLine) { return; }
+    if (isInsideCircle) { return; }
 
     handlePolygonTaskClick(event);
 
