@@ -29,6 +29,8 @@ interface LinesPolygonTaskProps {
   setCurrentAngle: (data: number) => void;
   selectedLineNodeId: string;
   setSelectedLineNodeId: (data: string) => void;
+  startAngle: number;
+  setStartAngle: (data: number) => void;
 }
 
 type FindIntersectionParams = {
@@ -64,7 +66,9 @@ export function useLinesPolygonTask({
   currentAngle,
   setCurrentAngle,
   selectedLineNodeId,
-  setSelectedLineNodeId
+  setSelectedLineNodeId,
+  startAngle,
+  setStartAngle
 }: LinesPolygonTaskProps) {
   const {
     handlePolygonTaskClick,
@@ -102,11 +106,16 @@ export function useLinesPolygonTask({
     maxAngle,
     setMaxAngle,
     lineQuantity,
+    startAngle,
+    setStartAngle,
+    currentAngle,
+    setCurrentAngle,
   })
 
   const handleLinesPolygonTaskMouseUp = () => {
     setSelectedLineNodeId('');
     cy.userPanningEnabled(true);
+    setStartAngle(currentAngle);
     return handleLinePolygonTaskMouseUp();
   }
 

@@ -46,6 +46,7 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, canvasTask, forbidd
   const [maxAngle, setMaxAngle] = useState(0);
   const [currentAngle, setCurrentAngle] = useState(0);
   const [selectedLineNodeId, setSelectedLineNodeId] = useState<string>('');
+  const [startAngle, setStartAngle] = useState(0);
   const wrapperElementRef = useRef<HTMLDivElement | null>(null);
 
   let canvas: HTMLCanvasElement | null = null;
@@ -106,6 +107,10 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, canvasTask, forbidd
           setIsInsideCircle,
           setFirstPositionCirclePoint,
           setMaxAngle,
+          startAngle,
+          setStartAngle,
+          currentAngle,
+          setCurrentAngle,
         });
         addLine({width: image.width, height: image.height})
       }
@@ -307,6 +312,10 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, canvasTask, forbidd
           setIsInsideCircle,
           setFirstPositionCirclePoint,
           setMaxAngle,
+          startAngle,
+          setStartAngle,
+          currentAngle,
+          setCurrentAngle,
         });
 
         cy.on('click', handlePolygonTaskClick);
@@ -348,7 +357,9 @@ export function CytoscapeCanvas({ imageSrc, maxDotsQuantity, canvasTask, forbidd
           currentAngle,
           setCurrentAngle,
           selectedLineNodeId,
-          setSelectedLineNodeId
+          setSelectedLineNodeId,
+          setStartAngle,
+          startAngle
         });
 
         cy.on('click', handlePolygonTaskClick);

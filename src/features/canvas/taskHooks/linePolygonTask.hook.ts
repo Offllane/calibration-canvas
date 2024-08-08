@@ -24,6 +24,10 @@ interface LinePolygonTaskProps {
   maxAngle: number; // angle limitation
   setMaxAngle: (data: number) => void;
   lineQuantity?: number;
+  startAngle: number;
+  setStartAngle: (data: number) => void;
+  currentAngle: number;
+  setCurrentAngle: (data: number) => void;
 }
 
 export type AngleParams = {
@@ -59,6 +63,10 @@ export function useLinePolygonTask(
     setFirstPositionCirclePoint,
     maxAngle,
     setMaxAngle,
+    startAngle,
+    setStartAngle,
+    currentAngle,
+    setCurrentAngle,
   }: LinePolygonTaskProps) {
 
   const {
@@ -124,6 +132,7 @@ export function useLinePolygonTask(
   }
 
   const handleLinePolygonTaskMouseUp = () => {
+    setStartAngle(currentAngle);
     cy!.autoungrabify(false)
     cy.nodes(`.${DEFAULT_DOT_CLASS}`).forEach((node) => {
       node.removeClass('no-overlay');
@@ -323,6 +332,7 @@ export function useLinePolygonTask(
 
     if (!angle) { return; }
 
+    setCurrentAngle(angle);
     const position = getNewLineNodesPosition({circleCenterPosition: coordinate, angle});
 
     if (!position) { return; }
@@ -387,10 +397,18 @@ export function useLinePolygonTask(
 
     if (angle > maxAngle) { return; }
 
-    if (cross > 0) {
-      angle = maxAngle * 2 - maxAngle/2 - angle;
+    if (startAngle) {
+      if (cross > 0) {
+        angle = startAngle - angle;
+      } else {
+        angle = startAngle + angle;
+      }
     } else {
-      angle = maxAngle * 2 - maxAngle/2 + angle;
+      if (cross > 0) {
+        angle = maxAngle * 1.5 - angle;
+      } else {
+        angle = maxAngle * 1.5 + angle;
+      }
     }
 
     if (angle > maxAngle * 2) {
